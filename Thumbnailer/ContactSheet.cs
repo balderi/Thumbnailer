@@ -321,7 +321,7 @@ namespace Thumbnailer
 
         public bool PrintSheet(string filename, bool printInfo, FontFamily infoFont, int infoFontSize,
                                Color infoFontColor, bool printTime, FontFamily timeFont, int timeFontSize,
-                               Color timeFontColor, Color timeShadowColor)
+                               Color timeFontColor, Color timeShadowColor, Color backgroundColor)
         {
             GenerateThumbnails();
             Height = GetHeight();
@@ -353,7 +353,7 @@ namespace Thumbnailer
                     canvas.SmoothingMode = SmoothingMode.HighQuality;
                     canvas.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
                     canvas.CompositingQuality = CompositingQuality.HighQuality;
-                    canvas.Clear(Color.Black);
+                    canvas.Clear(backgroundColor);
                     int idx = 0;
                     if (printInfo)
                         canvas.DrawString(PrintInfo(), infoF, infoB, new PointF(2, 2));

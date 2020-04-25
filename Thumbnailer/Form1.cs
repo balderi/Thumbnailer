@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Text;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -14,7 +13,7 @@ namespace Thumbnailer
     {
         string[] fileNames;
         string outputPath;
-        Color InfoColor, TimeColor, ShadowColor;
+        Color InfoColor, TimeColor, ShadowColor, BackgroundColor;
         FontFamily infoFont, timeFont;
         bool IsFullscreen;
         int curFile;
@@ -35,6 +34,7 @@ namespace Thumbnailer
             InfoColor = Color.White;
             TimeColor = Color.White;
             ShadowColor = Color.Black;
+            BackgroundColor = Color.Black;
             infoFont = FontFamily.Families[0];
             timeFont = FontFamily.Families[0];
             tsProcessing.Visible = false;
@@ -147,7 +147,7 @@ namespace Thumbnailer
 
                         return cs.PrintSheet(outputPath, cbPrintInfo.Checked, infoFont, (int)infoFontSizeSelect.Value,
                                              InfoColor, cbPrintTime.Checked, timeFont, (int)timeFontSizeSelect.Value,
-                                             TimeColor, ShadowColor);
+                                             TimeColor, ShadowColor, BackgroundColor);
                     });
                     results[i++] = t;
                     t.Start();
@@ -526,6 +526,25 @@ namespace Thumbnailer
             SolidBrush infoBrush = new SolidBrush(ShadowColor);
             e.Graphics.FillRectangle(infoBrush, r);
             e.Graphics.DrawRectangle(pen, r);
+        }
+
+        private void btnBackgroundColorSelect_Paint(object sender, PaintEventArgs e)
+        {
+            Size size = new Size(12, 12);
+            int offset = (btnBackgroundColorSelect.Height / 2) - (size.Height / 2);
+            Rectangle r = new Rectangle(new Point(3 * offset, offset), size);
+            Pen pen = new Pen(Color.Black);
+            SolidBrush infoBrush = new SolidBrush(BackgroundColor);
+            e.Graphics.FillRectangle(infoBrush, r);
+            e.Graphics.DrawRectangle(pen, r);
+        }
+
+        private void btnBackgroundColorSelect_Click(object sender, EventArgs e)
+        {
+            if (colorDialog1.ShowDialog() == DialogResult.OK)
+            {
+                BackgroundColor = colorDialog1.Color;
+            }
         }
 
         private void btnInfoColorSelect_Click(object sender, EventArgs e)
