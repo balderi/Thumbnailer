@@ -6,11 +6,13 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Thumbnailer.Properties;
 
 namespace Thumbnailer
 {
     public partial class Form1 : Form
     {
+        Config _currentConfig;
         string[] fileNames;
         string outputPath;
         Color InfoColor, TimeColor, ShadowColor, BackgroundColor;
@@ -22,21 +24,13 @@ namespace Thumbnailer
 
         public Form1()
         {
+            _currentConfig = Config.Load(Settings.Default.PreviousConfigPath);
             logger = new Logger();
             InitializeComponent();
             IsFullscreen = false;
             outputPath = "";
             PopulateFonts();
-            cbInfoFontSelect.SelectedIndex = 0;
-            cbTimeFontSelect.SelectedIndex = 0;
-            cbInfoPositionSelect.SelectedIndex = 0;
-            cbTimePositionSelect.SelectedIndex = 0;
-            InfoColor = Color.White;
-            TimeColor = Color.White;
-            ShadowColor = Color.Black;
-            BackgroundColor = Color.Black;
-            infoFont = FontFamily.Families[0];
-            timeFont = FontFamily.Families[0];
+            ApplyConfig();
             tsProcessing.Visible = false;
             tsPbar.Visible = false;
             tsCurrentFile.Visible = false;
@@ -44,6 +38,7 @@ namespace Thumbnailer
             tsTotalFiles.Visible = false;
             tsFiles.Visible = false;
             curFile = 0;
+
             UpdateState();
 
             if (!Directory.Exists("temp"))
@@ -72,11 +67,11 @@ namespace Thumbnailer
 
         private void btnLoad_Click(object sender, EventArgs e)
         {
-            if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            if (openVideoDialog.ShowDialog() == DialogResult.OK)
             {
                 pbLoadItems.Value = 0;
                 pbLoadItems.Visible = true;
-                fileNames = openFileDialog1.FileNames;
+                fileNames = openVideoDialog.FileNames;
                 logger.LogInfo($"Loading {fileNames.Length} files...");
                 pbLoadItems.Maximum = fileNames.Length;
                 foreach (string fileName in fileNames)
@@ -128,7 +123,9 @@ namespace Thumbnailer
                 tsProcessing.Text = "Starting frame capture";
                 int i = 0;
 
-                foreach(ContactSheet cs in sheets)
+                TaskFactory ts = new TaskFactory();
+
+                foreach (ContactSheet cs in sheets)
                 {
                     cs.Rows = (int)rowsSelect.Value;
                     cs.Columns = (int)colsSelect.Value;
@@ -144,18 +141,19 @@ namespace Thumbnailer
                         {
                             outputPath = tbOutput.Text + "/" + new FileInfo(cs.FilePath.ToString()).Name;
                         }
+                        GC.Collect();
 
                         return cs.PrintSheet(outputPath, cbPrintInfo.Checked, infoFont, (int)infoFontSizeSelect.Value,
                                              InfoColor, cbPrintTime.Checked, timeFont, (int)timeFontSizeSelect.Value,
                                              TimeColor, ShadowColor, BackgroundColor);
                     });
-                    results[i++] = t;
+                    
+                    results[i] = t;
                     t.Start();
-
+                    i++;
                     tsPbar.PerformStep();
                     tsCurrentFile.Text = (++curFile).ToString();
                     Refresh();
-                    GC.Collect();
                 }
 
                 tsProcessing.Text = "Building sheets";
@@ -173,6 +171,11 @@ namespace Thumbnailer
                     {
                         success = false;
                     }
+                }
+                if (results.Length != sheets.Count)
+                {
+                    success = false;
+                    logger.LogError($"Expected {sheets.Count} sheets, but only got {results.Length}");
                 }
                 logger.LogInfo($"All tasks finished successfully: {success}");
 
@@ -195,7 +198,6 @@ namespace Thumbnailer
                 UpdateState();
 
                 GC.Collect();
-                GC.WaitForPendingFinalizers();
 
                 logger.LogInfo($"*** Done in {DateTime.Now.Subtract(start).TotalSeconds} seconds ***");
             }
@@ -272,29 +274,51 @@ namespace Thumbnailer
         private void cbInfoFontSelect_SelectedIndexChanged(object sender, EventArgs e)
         {
             infoFont = FontFamily.Families[cbInfoFontSelect.SelectedIndex];
+            _currentConfig.InfoFont = infoFont.Name;
         }
 
         private void cbTimeFontSelect_SelectedIndexChanged(object sender, EventArgs e)
         {
             timeFont = FontFamily.Families[cbInfoFontSelect.SelectedIndex];
+            _currentConfig.TimeFont = timeFont.Name;
         }
 
-        private void btnRemoveSelected_Click(object sender, EventArgs e)
+        private void RemoveSelectedItems()
         {
             ListBox.SelectedObjectCollection selectedItems = new ListBox.SelectedObjectCollection(fileListBox);
             selectedItems = fileListBox.SelectedItems;
+            List<ContactSheet> tempSheetList = new List<ContactSheet>();
 
             if (fileListBox.SelectedIndex != -1)
             {
                 for (int i = selectedItems.Count - 1; i >= 0; i--)
+                {
+                    foreach (var item in sheets)
+                    {
+                        if (item.FilePath == selectedItems[i].ToString())
+                        {
+                            tempSheetList.Add(item);
+                        }
+                    }
                     fileListBox.Items.Remove(selectedItems[i]);
+                }
+                foreach(var item in tempSheetList)
+                {
+                    sheets.Remove(item);
+                }
             }
+        }
+
+        private void btnRemoveSelected_Click(object sender, EventArgs e)
+        {
+            RemoveSelectedItems();
             UpdateState();
         }
 
         private void btnResetSelection_Click(object sender, EventArgs e)
         {
             fileListBox.Items.Clear();
+            sheets.Clear();
             UpdateState();
         }
 
@@ -302,23 +326,16 @@ namespace Thumbnailer
         {
             if (e.KeyCode == Keys.Delete)
             {
-                ListBox.SelectedObjectCollection selectedItems = new ListBox.SelectedObjectCollection(fileListBox);
-                selectedItems = fileListBox.SelectedItems;
-
-                if (fileListBox.SelectedIndex != -1)
-                {
-                    for (int i = selectedItems.Count - 1; i >= 0; i--)
-                        fileListBox.Items.Remove(selectedItems[i]);
-                }
+                RemoveSelectedItems();
             }
             UpdateState();
         }
 
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            if (openVideoDialog.ShowDialog() == DialogResult.OK)
             {
-                fileNames = openFileDialog1.FileNames;
+                fileNames = openVideoDialog.FileNames;
                 foreach (string fileName in fileNames)
                 {
                     fileListBox.Items.Add(fileName);
@@ -362,6 +379,8 @@ namespace Thumbnailer
         {
             rowsSelect.Value = rows;
             colsSelect.Value = cols;
+            _currentConfig.Rows = rows;
+            _currentConfig.Columns = cols;
             Refresh();
         }
 
@@ -539,18 +558,80 @@ namespace Thumbnailer
             e.Graphics.DrawRectangle(pen, r);
         }
 
+        private void saveConfigurationToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            _currentConfig.Save();
+            Settings.Default.PreviousConfigPath = _currentConfig.Path;
+            Settings.Default.Save();
+        }
+
+        private void saveConfigurationAsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            openConfigDialog.InitialDirectory = Application.ExecutablePath;
+            if(saveConfigDialog.ShowDialog() == DialogResult.OK)
+            {
+                _currentConfig.SaveAs(saveConfigDialog.FileName);
+                Settings.Default.PreviousConfigPath = saveConfigDialog.FileName;
+                Settings.Default.Save();
+            }
+        }
+
+        private void loadConfigurationToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            openConfigDialog.InitialDirectory = Application.ExecutablePath;
+            if(openConfigDialog.ShowDialog() == DialogResult.OK)
+            {
+                _currentConfig = Config.Load(openConfigDialog.FileName);
+                Settings.Default.PreviousConfigPath = openConfigDialog.FileName;
+                Settings.Default.Save();
+                ApplyConfig();
+            }
+        }
+
         private void btnBackgroundColorSelect_Click(object sender, EventArgs e)
         {
             if (colorDialog1.ShowDialog() == DialogResult.OK)
             {
+                _currentConfig.BackgroundColor = colorDialog1.Color.ToArgb();
                 BackgroundColor = colorDialog1.Color;
             }
+        }
+
+        private void rowsSelect_ValueChanged(object sender, EventArgs e)
+        {
+            _currentConfig.Rows = (int)rowsSelect.Value;
+        }
+
+        private void colsSelect_ValueChanged(object sender, EventArgs e)
+        {
+            _currentConfig.Columns = (int)colsSelect.Value;
+        }
+
+        private void widthSelect_ValueChanged(object sender, EventArgs e)
+        {
+            _currentConfig.Width = (int)widthSelect.Value;
+        }
+
+        private void gapSelect_ValueChanged(object sender, EventArgs e)
+        {
+            _currentConfig.Gap = (int)gapSelect.Value;
+        }
+
+        private void infoFontSizeSelect_ValueChanged(object sender, EventArgs e)
+        {
+            _currentConfig.InfoFontSize = (int)infoFontSizeSelect.Value;
+        }
+
+        private void timeFontSizeSelect_ValueChanged(object sender, EventArgs e)
+        {
+            _currentConfig.TimeFontSize = (int)timeFontSizeSelect.Value;
         }
 
         private void btnInfoColorSelect_Click(object sender, EventArgs e)
         {
             if (colorDialog1.ShowDialog() == DialogResult.OK)
             {
+                _currentConfig.InfoColor = colorDialog1.Color.ToArgb();
                 InfoColor = colorDialog1.Color;
             }
         }
@@ -559,6 +640,7 @@ namespace Thumbnailer
         {
             if (colorDialog1.ShowDialog() == DialogResult.OK)
             {
+                _currentConfig.TimeColor = colorDialog1.Color.ToArgb();
                 TimeColor = colorDialog1.Color;
             }
         }
@@ -567,8 +649,29 @@ namespace Thumbnailer
         {
             if (colorDialog1.ShowDialog() == DialogResult.OK)
             {
+                _currentConfig.ShadowColor = colorDialog1.Color.ToArgb();
                 ShadowColor = colorDialog1.Color;
             }
+        }
+
+        void ApplyConfig()
+        {
+            rowsSelect.Value = _currentConfig.Rows;
+            colsSelect.Value = _currentConfig.Columns;
+            widthSelect.Value = _currentConfig.Width;
+            gapSelect.Value = _currentConfig.Gap;
+            cbInfoFontSelect.SelectedIndex = cbInfoFontSelect.FindString(_currentConfig.InfoFont);
+            cbTimeFontSelect.SelectedIndex = cbInfoFontSelect.FindString(_currentConfig.TimeFont);
+            cbInfoPositionSelect.SelectedIndex = 0;
+            cbTimePositionSelect.SelectedIndex = 0;
+            InfoColor = Color.FromArgb(_currentConfig.InfoColor);
+            TimeColor = Color.FromArgb(_currentConfig.TimeColor);
+            ShadowColor = Color.FromArgb(_currentConfig.ShadowColor);
+            BackgroundColor = Color.FromArgb(_currentConfig.BackgroundColor);
+            infoFont = FontFamily.Families[cbInfoFontSelect.SelectedIndex];
+            timeFont = FontFamily.Families[cbTimeFontSelect.SelectedIndex];
+            cbPrintInfo.Checked = _currentConfig.InfoChecked;
+            cbPrintTime.Checked = _currentConfig.TimeChecked;
         }
     }
 }

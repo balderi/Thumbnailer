@@ -40,7 +40,7 @@
             this.label2 = new System.Windows.Forms.Label();
             this.btnLoad = new System.Windows.Forms.Button();
             this.btnStart = new System.Windows.Forms.Button();
-            this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
+            this.openVideoDialog = new System.Windows.Forms.OpenFileDialog();
             this.fileListBox = new System.Windows.Forms.ListBox();
             this.tbOutput = new System.Windows.Forms.TextBox();
             this.btnOutputSelect = new System.Windows.Forms.Button();
@@ -127,6 +127,8 @@
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.label6 = new System.Windows.Forms.Label();
             this.btnBackgroundColorSelect = new System.Windows.Forms.Button();
+            this.openConfigDialog = new System.Windows.Forms.OpenFileDialog();
+            this.saveConfigDialog = new System.Windows.Forms.SaveFileDialog();
             this.gbConfig.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.colsSelect)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.gapSelect)).BeginInit();
@@ -178,6 +180,7 @@
             0,
             0,
             0});
+            this.colsSelect.ValueChanged += new System.EventHandler(this.colsSelect_ValueChanged);
             // 
             // gapSelect
             // 
@@ -190,6 +193,7 @@
             0,
             0,
             0});
+            this.gapSelect.ValueChanged += new System.EventHandler(this.gapSelect_ValueChanged);
             // 
             // widthSelect
             // 
@@ -207,6 +211,7 @@
             0,
             0,
             0});
+            this.widthSelect.ValueChanged += new System.EventHandler(this.widthSelect_ValueChanged);
             // 
             // rowsSelect
             // 
@@ -224,6 +229,7 @@
             0,
             0,
             0});
+            this.rowsSelect.ValueChanged += new System.EventHandler(this.rowsSelect_ValueChanged);
             // 
             // label4
             // 
@@ -272,11 +278,11 @@
             this.btnStart.UseVisualStyleBackColor = true;
             this.btnStart.Click += new System.EventHandler(this.btnStart_Click);
             // 
-            // openFileDialog1
+            // openVideoDialog
             // 
-            this.openFileDialog1.Filter = resources.GetString("openFileDialog1.Filter");
-            this.openFileDialog1.Multiselect = true;
-            this.openFileDialog1.RestoreDirectory = true;
+            this.openVideoDialog.Filter = resources.GetString("openVideoDialog.Filter");
+            this.openVideoDialog.Multiselect = true;
+            this.openVideoDialog.RestoreDirectory = true;
             // 
             // fileListBox
             // 
@@ -415,6 +421,7 @@
             0,
             0,
             0});
+            this.infoFontSizeSelect.ValueChanged += new System.EventHandler(this.infoFontSizeSelect_ValueChanged);
             // 
             // timeFontSizeSelect
             // 
@@ -437,6 +444,7 @@
             0,
             0,
             0});
+            this.timeFontSizeSelect.ValueChanged += new System.EventHandler(this.timeFontSizeSelect_ValueChanged);
             // 
             // cbInfoPositionSelect
             // 
@@ -574,6 +582,7 @@
             this.loadConfigurationToolStripMenuItem.Name = "loadConfigurationToolStripMenuItem";
             this.loadConfigurationToolStripMenuItem.Size = new System.Drawing.Size(196, 22);
             this.loadConfigurationToolStripMenuItem.Text = "Load configuration";
+            this.loadConfigurationToolStripMenuItem.Click += new System.EventHandler(this.loadConfigurationToolStripMenuItem_Click);
             // 
             // recentConfigurationsToolStripMenuItem
             // 
@@ -600,12 +609,14 @@
             this.saveConfigurationToolStripMenuItem.Name = "saveConfigurationToolStripMenuItem";
             this.saveConfigurationToolStripMenuItem.Size = new System.Drawing.Size(196, 22);
             this.saveConfigurationToolStripMenuItem.Text = "Save configuration";
+            this.saveConfigurationToolStripMenuItem.Click += new System.EventHandler(this.saveConfigurationToolStripMenuItem_Click);
             // 
             // saveConfigurationAsToolStripMenuItem
             // 
             this.saveConfigurationAsToolStripMenuItem.Name = "saveConfigurationAsToolStripMenuItem";
             this.saveConfigurationAsToolStripMenuItem.Size = new System.Drawing.Size(196, 22);
             this.saveConfigurationAsToolStripMenuItem.Text = "Save configuration as...";
+            this.saveConfigurationAsToolStripMenuItem.Click += new System.EventHandler(this.saveConfigurationAsToolStripMenuItem_Click);
             // 
             // toolStripSeparator3
             // 
@@ -1026,6 +1037,15 @@
             this.btnBackgroundColorSelect.Click += new System.EventHandler(this.btnBackgroundColorSelect_Click);
             this.btnBackgroundColorSelect.Paint += new System.Windows.Forms.PaintEventHandler(this.btnBackgroundColorSelect_Paint);
             // 
+            // openConfigDialog
+            // 
+            this.openConfigDialog.Filter = "XML Files(*.xml)|*.xml";
+            // 
+            // saveConfigDialog
+            // 
+            this.saveConfigDialog.DefaultExt = "xml";
+            this.saveConfigDialog.Filter = "XML Files(*.xml)|*.xml";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -1082,7 +1102,7 @@
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Button btnLoad;
         private System.Windows.Forms.Button btnStart;
-        private System.Windows.Forms.OpenFileDialog openFileDialog1;
+        private System.Windows.Forms.OpenFileDialog openVideoDialog;
         private System.Windows.Forms.ListBox fileListBox;
         private System.Windows.Forms.TextBox tbOutput;
         private System.Windows.Forms.Button btnOutputSelect;
@@ -1169,6 +1189,8 @@
         private System.Windows.Forms.ProgressBar pbLoadItems;
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.Button btnBackgroundColorSelect;
+        private System.Windows.Forms.OpenFileDialog openConfigDialog;
+        private System.Windows.Forms.SaveFileDialog saveConfigDialog;
     }
 }
 

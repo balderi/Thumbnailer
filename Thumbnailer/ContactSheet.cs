@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
+using Accord.Video.FFMPEG;
 
 namespace Thumbnailer
 {
@@ -21,12 +23,16 @@ namespace Thumbnailer
         public int Height { get; private set; }
         public int Gap { get; set; }
         public List<Thumbnail> Thumbnails { get; }
-
         readonly Logger _logger;
+        readonly VideoFileReader _vr;
 
         public ContactSheet(string filePath, Logger logger)
         {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
+            _vr = new VideoFileReader();
+            _vr.Open(filePath);
             _logger = logger;
+            _logger.LogInfo($"_vr.FrameCount = {_vr.FrameCount}");
             FilePath = filePath;
             Duration = GetDuration();
             FileInfo = GetFileInfo();
@@ -39,6 +45,16 @@ namespace Thumbnailer
         void GenerateThumbnails()
         {
             double tween = Duration / (Rows * Columns);
+
+            //for (int i = 0; i < (Rows * Columns); i++)
+            //{
+            //    var start = DateTime.Now;
+            //    _logger.LogInfo($"Current frame = {(int)(i * tween * _vr.FrameRate.ToDouble())}");
+            //    Thumbnail t = new Thumbnail(_vr.ReadVideoFrame((int)(i * tween * _vr.FrameRate.ToDouble())), i * tween);
+            //    Thumbnails.Add(t);
+            //    _logger.LogInfo($"Time for frame: {DateTime.Now.Subtract(start).TotalSeconds} seconds");
+            //}
+
             string dir = "temp/temp_" + (FilePath.GetHashCode() + DateTime.Now.Millisecond);
             Directory.CreateDirectory(dir);
             _logger.LogInfo($"Generating thumbnails for file {FilePath}, in directory {dir}");
@@ -70,14 +86,15 @@ namespace Thumbnailer
             foreach (string s in Directory.GetFiles(dir))
             {
                 Thumbnail t = new Thumbnail(s, ++count * tween);
+                //_logger.LogInfo($"Current frame = {count * tween * 29.97}");
                 Thumbnails.Add(t);
             }
         }
 
         double GetDuration()
         {
+            //return Math.Round(_vr.FrameCount / _vr.FrameRate.ToDouble());
             _logger.LogInfo($"Getting duration for file {FilePath}...");
-            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
             var probe = new Process
             {
                 StartInfo = new ProcessStartInfo
@@ -197,41 +214,7 @@ namespace Thumbnailer
 
         string GetVideoInfo()
         {
-            var probe = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "ffprobe",
-                    Arguments = "-v quiet -print_format compact=print_section=0:nokey=1:escape=csv -select_streams v:0 -show_entries stream=codec_name,pix_fmt,width,height,bit_rate,r_frame_rate \"" + FilePath + "\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true
-                }
-            };
-
-            string[] output;
-            try
-            {
-                probe.Start();
-                output = probe.StandardOutput.ReadToEnd().Replace(Environment.NewLine, "").Trim().Split('|');
-                probe.WaitForExit();
-                probe.Dispose();
-            }
-            catch
-            {
-                _logger.LogError($"ffprobe failed to start.");
-                throw new FfprobeException();
-            }
-
-            try
-            {
-                return $"Video: {output[0]}, {output[1]}x{output[2]}, {output[3]}, {GetFps(output[4])} fps(r), {ConvertToKB(int.Parse(output[5]))}b/s";
-            }
-            catch (Exception e)
-            {
-                _logger.LogWarning($"Getting video info on file {FilePath} faled with exception: {e.Message}");
-                return "Video: unknown";
-            }
+            return $"Video: {_vr.CodecName}, {_vr.Width}x{_vr.Height}, {_vr.FrameRate.ToDouble():N2} fps(r), {ConvertToKB(_vr.BitRate)}b/s";
         }
 
         int GetHeight()
@@ -397,7 +380,8 @@ namespace Thumbnailer
                 }
                 try
                 {
-                    bitmap.Save(filename + ".png", System.Drawing.Imaging.ImageFormat.Png);
+                    bitmap.Save(filename + ".png", ImageFormat.Png);
+                    _logger.LogInfo($"Successfully saved file {filename}.png");
                 }
                 catch (Exception e)
                 {

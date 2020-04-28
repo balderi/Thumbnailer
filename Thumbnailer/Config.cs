@@ -4,7 +4,7 @@ using System.Xml.Serialization;
 
 namespace Thumbnailer
 {
-    class Config
+    public class Config
     {
         [XmlElement(ElementName = "Rows")]
         public int Rows { get; set; }
@@ -48,21 +48,29 @@ namespace Thumbnailer
         [XmlElement(ElementName = "TimeChecked")]
         public bool TimeChecked { get; set; }
 
-        [XmlElement(ElementName = "ShadowChecked")]
-        public bool ShadowChecked { get; set; }
+        public string Path { get; set; }
 
         readonly string _defaultPath = "config.xml";
 
-        public void Save(Config config)
+        public Config()
         {
-            SaveAs(config, _defaultPath);
+
         }
 
-        public void SaveAs(Config config, string path)
+        public void Save()
         {
-            var xmls = new XmlSerializer(config.GetType());
+            if (string.IsNullOrEmpty(Path))
+                SaveAs(_defaultPath);
+            else
+                SaveAs(Path);
+        }
+
+        public void SaveAs(string path)
+        {
+            Path = path;
+            var xmls = new XmlSerializer(this.GetType());
             var writer = new StreamWriter(path);
-            xmls.Serialize(writer, config);
+            xmls.Serialize(writer, this);
             writer.Close();
         }
 
@@ -70,7 +78,10 @@ namespace Thumbnailer
         {
             var fs = new FileStream(path, FileMode.Open);
             var xmls = new XmlSerializer(typeof(Config));
-            return (Config)xmls.Deserialize(fs);
+            var retval = (Config)xmls.Deserialize(fs);
+            fs.Close();
+            retval.Path = path;
+            return retval;
         }
     }
 }

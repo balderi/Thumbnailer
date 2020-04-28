@@ -8,7 +8,9 @@ namespace Thumbnailer
         readonly StreamWriter sw;
         public Logger()
         {
-            sw = new StreamWriter($"log_{DateTime.Now:ddMMyyyyHHmmss}.txt");
+            if (!Directory.Exists("logs"))
+                Directory.CreateDirectory("logs");
+            sw = new StreamWriter($"logs/{DateTime.Now:ddMMyyyyHHmmss}.log");
             sw.WriteLine($"--- BEGIN LOG - {DateTime.Now} ---");
         }
 
