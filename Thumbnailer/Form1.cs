@@ -181,11 +181,11 @@ namespace Thumbnailer
 
                 if (success)
                 {
-                    MessageBox.Show("Done!");
+                    MessageBox.Show(this, "Done!");
                 }
                 else
                 {
-                    MessageBox.Show("Done with errors!");
+                    MessageBox.Show(this, "Done with errors!");
                 }
 
                 tsProcessing.Visible = false;

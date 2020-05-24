@@ -6,7 +6,6 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
-using Accord.Video.FFMPEG;
 
 namespace Thumbnailer
 {
@@ -24,15 +23,11 @@ namespace Thumbnailer
         public int Gap { get; set; }
         public List<Thumbnail> Thumbnails { get; }
         readonly Logger _logger;
-        readonly VideoFileReader _vr;
 
         public ContactSheet(string filePath, Logger logger)
         {
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
-            _vr = new VideoFileReader();
-            _vr.Open(filePath);
             _logger = logger;
-            _logger.LogInfo($"_vr.FrameCount = {_vr.FrameCount}");
             FilePath = filePath;
             Duration = GetDuration();
             FileInfo = GetFileInfo();
@@ -164,7 +159,7 @@ namespace Thumbnailer
 
             try
             {
-                return $"Size: {output[1]} bytes ({ConvertToKiB(int.Parse(output[1]))}B), duration: {ConvertToHMS(double.Parse(output[0]))}, avg. bitrate: {ConvertToKB(int.Parse(output[2]))}b/s";
+                return $"Size: {output[1]} bytes ({ConvertToKiB(output[1])}B), duration: {ConvertToHMS(double.Parse(output[0]))}, avg. bitrate: {ConvertToKB(output[2])}b/s";
             }
             catch (Exception e)
             {
@@ -203,7 +198,7 @@ namespace Thumbnailer
 
             try
             {
-                return $"Audio: {output[0]}, {output[1]} Hz, {output[2]} channels, {ConvertToKB(int.Parse(output[3]))}b/s";
+                return $"Audio: {output[0]}, {output[1]} Hz, {output[2]} channels, {ConvertToKB(output[3])}b/s";
             }
             catch (Exception e)
             {
@@ -214,7 +209,41 @@ namespace Thumbnailer
 
         string GetVideoInfo()
         {
-            return $"Video: {_vr.CodecName}, {_vr.Width}x{_vr.Height}, {_vr.FrameRate.ToDouble():N2} fps(r), {ConvertToKB(_vr.BitRate)}b/s";
+            var probe = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "ffprobe",
+                    Arguments = "-v quiet -print_format compact=print_section=0:nokey=1:escape=csv -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate,bit_rate \"" + FilePath + "\"",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    CreateNoWindow = true
+                }
+            };
+
+            string[] output;
+            try
+            {
+                probe.Start();
+                output = probe.StandardOutput.ReadToEnd().Replace(Environment.NewLine, "").Trim().Split('|');
+                probe.WaitForExit();
+                probe.Dispose();
+            }
+            catch
+            {
+                _logger.LogError($"ffprobe failed to start.");
+                throw new FfprobeException();
+            }
+
+            try
+            {
+                return $"Video: {output[0]}, {output[1]}x{output[2]}, {GetFps(output[3])}, {ConvertToKB(output[4])}b/s";
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning($"Getting video info on file {FilePath} faled with exception: {e.Message}");
+                return "Video: unknown";
+            }
         }
 
         int GetHeight()
@@ -233,47 +262,63 @@ namespace Thumbnailer
             return (double.Parse(temp[0]) / double.Parse(temp[1])).ToString("N2");
         }
 
-        string ConvertToKiB(int value)
+        string ConvertToKiB(string value)
         {
-            double temp = value;
+            if(int.TryParse(value, out int result))
+            {
+                double temp = result;
 
-            if (temp / 1073741824 > 1)
-            {
-                return (temp / 1073741824).ToString("N2") + " Gi";
-            }
-            else if (temp / 1048576 > 1)
-            {
-                return (temp / 1048576).ToString("N2") + " Mi";
-            }
-            else if (temp / 1024 > 1)
-            {
-                return (temp / 1024).ToString("N2") + " Ki";
+                if (temp / 1073741824 > 1)
+                {
+                    return (temp / 1073741824).ToString("N2") + " Gi";
+                }
+                else if (temp / 1048576 > 1)
+                {
+                    return (temp / 1048576).ToString("N2") + " Mi";
+                }
+                else if (temp / 1024 > 1)
+                {
+                    return (temp / 1024).ToString("N2") + " Ki";
+                }
+                else
+                {
+                    return (temp).ToString();
+                }
             }
             else
             {
-                return (temp).ToString();
+                _logger.LogWarning($"Unable to parse value '{value}' - defaulting to 0");
+                return "0 ";
             }
         }
 
-        string ConvertToKB(int value)
+        string ConvertToKB(string value)
         {
-            double temp = value;
+            if (int.TryParse(value, out int result))
+            {
+                double temp = result;
 
-            if (temp / 1000000000 > 1)
-            {
-                return (temp / 1000000000).ToString("N2") + " G";
-            }
-            else if (temp / 1000000 > 1)
-            {
-                return (temp / 1000000).ToString("N2") + " M";
-            }
-            else if (temp / 1000 > 1)
-            {
-                return (temp / 1000).ToString("N2") + " k";
+                if (temp / 1000000000 > 1)
+                {
+                    return (temp / 1000000000).ToString("N2") + " G";
+                }
+                else if (temp / 1000000 > 1)
+                {
+                    return (temp / 1000000).ToString("N2") + " M";
+                }
+                else if (temp / 1000 > 1)
+                {
+                    return (temp / 1000).ToString("N2") + " k";
+                }
+                else
+                {
+                    return (temp).ToString();
+                }
             }
             else
             {
-                return (temp).ToString();
+                _logger.LogWarning($"Unable to parse value '{value}' - defaulting to 0");
+                return "0 ";
             }
         }
 
