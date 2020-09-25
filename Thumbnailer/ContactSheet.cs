@@ -52,7 +52,7 @@ namespace Thumbnailer
 
             string dir = "temp/temp_" + (FilePath.GetHashCode() + DateTime.Now.Millisecond);
             Directory.CreateDirectory(dir);
-            _logger.LogInfo($"Generating thumbnails for file {FilePath}, in directory {dir}");
+            //_logger.LogInfo($"Generating thumbnails for file {FilePath}, in directory {dir}");
 
             var proc = new Process
             {
@@ -89,7 +89,7 @@ namespace Thumbnailer
         double GetDuration()
         {
             //return Math.Round(_vr.FrameCount / _vr.FrameRate.ToDouble());
-            _logger.LogInfo($"Getting duration for file {FilePath}...");
+            //_logger.LogInfo($"Getting duration for file {FilePath}...");
             var probe = new Process
             {
                 StartInfo = new ProcessStartInfo
@@ -347,11 +347,26 @@ namespace Thumbnailer
             return (int)Math.Round(size.Height);
         }
 
+        //public event EventHandler ThumbnailsGenerated;
+
+        //protected void OnThumbnailsCreated(EventArgs e)
+        //{
+        //    ThumbnailsGenerated.Invoke(this, e);
+        //}
+
+        public event EventHandler SheetPrinted;
+
+        protected void OnSheetPrinted(object sender, EventArgs e)
+        {
+            SheetPrinted.Invoke(this, e);
+        }
+
         public bool PrintSheet(string filename, bool printInfo, FontFamily infoFont, int infoFontSize,
                                Color infoFontColor, bool printTime, FontFamily timeFont, int timeFontSize,
                                Color timeFontColor, Color timeShadowColor, Color backgroundColor)
         {
             GenerateThumbnails();
+            //OnThumbnailsCreated(EventArgs.Empty);
             Height = GetHeight();
 
             int imgWidth = (Width - ((Columns - 1) * Gap) - 4) / Columns;
@@ -426,7 +441,7 @@ namespace Thumbnailer
                 try
                 {
                     bitmap.Save(filename + ".png", ImageFormat.Png);
-                    _logger.LogInfo($"Successfully saved file {filename}.png");
+                    //_logger.LogInfo($"Successfully saved file {filename}.png");
                 }
                 catch (Exception e)
                 {
@@ -441,7 +456,39 @@ namespace Thumbnailer
                     t.Dispose();
                 }
             }
+            OnSheetPrinted(this, EventArgs.Empty);
             return true;
+        }
+
+        public static event EventHandler SheetCreated;
+
+        static void OnSheetCreated(EventArgs e)
+        {
+            SheetCreated?.Invoke(typeof(ContactSheet), e);
+        }
+
+        public static List<ContactSheet> BuildSheets(string[] files, Logger logger)
+        {
+            var retval = new List<ContactSheet>();
+
+            foreach(string file in files)
+            {
+                //logger.LogInfo($"Creating contact sheet object for file {file}...");
+                try
+                {
+                    ContactSheet cs = new ContactSheet(file, logger);
+                    retval.Add(cs);
+                    OnSheetCreated(EventArgs.Empty);
+                }
+                catch(Exception e)
+                {
+                    logger.LogError($"Exception during sheet-building: {e.Message}");
+                    throw e;
+                }
+                //logger.LogInfo($"Object created for file {file}");
+            }
+
+            return retval;
         }
     }
 }

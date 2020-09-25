@@ -39,6 +39,8 @@ namespace Thumbnailer
             tsFiles.Visible = false;
             curFile = 0;
 
+            ContactSheet.SheetCreated += SheetCreated;
+
             UpdateState();
 
             if (!Directory.Exists("temp"))
@@ -65,6 +67,11 @@ namespace Thumbnailer
             GC.Collect();
         }
 
+        void SheetCreated(object sender, EventArgs e)
+        {
+            pbLoadItems.PerformStep();
+        }
+
         private void btnLoad_Click(object sender, EventArgs e)
         {
             if (openVideoDialog.ShowDialog() == DialogResult.OK)
@@ -74,29 +81,45 @@ namespace Thumbnailer
                 fileNames = openVideoDialog.FileNames;
                 logger.LogInfo($"Loading {fileNames.Length} files...");
                 pbLoadItems.Maximum = fileNames.Length;
-                foreach (string fileName in fileNames)
+
+                var newSheets = ContactSheet.BuildSheets(fileNames, logger);
+                sheets.AddRange(newSheets);
+
+                foreach(var s in newSheets)
                 {
-                    logger.LogInfo($"Creating contact sheet object for file {fileName}...");
-                    try
-                    {
-                        ContactSheet cs = new ContactSheet(fileName, logger);
-                        sheets.Add(cs);
-                        fileListBox.Items.Add(fileName);
-                        lblItemsCount.Text = fileListBox.Items.Count + " items";
-                        pbLoadItems.PerformStep();
-                        fileListBox.Refresh();
-                    }
-                    catch(Exception ex)
-                    {
-                        MessageBox.Show(ex.Message);
-                        return;
-                    }
-                    logger.LogInfo($"Object created for file {fileName}");
+                    fileListBox.Items.Add(s.FilePath);
                 }
-                logger.LogInfo($"Loaded {fileNames.Length} files");
+                fileListBox.Refresh();
+                lblItemsCount.Text = fileListBox.Items.Count + " items";
+
+                //foreach (string fileName in fileNames)
+                //{
+                //    logger.LogInfo($"Creating contact sheet object for file {fileName}...");
+                //    try
+                //    {
+                //        ContactSheet cs = new ContactSheet(fileName, logger);
+                //        sheets.Add(cs);
+                //        fileListBox.Items.Add(fileName);
+                //        lblItemsCount.Text = fileListBox.Items.Count + " items";
+                //        pbLoadItems.PerformStep();
+                //        fileListBox.Refresh();
+                //    }
+                //    catch(Exception ex)
+                //    {
+                //        MessageBox.Show(ex.Message);
+                //        return;
+                //    }
+                //    logger.LogInfo($"Object created for file {fileName}");
+                //}
+                //logger.LogInfo($"Loaded {fileNames.Length} files");
             }
             pbLoadItems.Visible = false;
             UpdateState();
+        }
+
+        void SheetPrinted(object sender, EventArgs e)
+        {
+            tsPbar.PerformStep();
         }
 
         private void btnStart_Click(object sender, EventArgs e)
@@ -120,13 +143,15 @@ namespace Thumbnailer
                 tsCurrentFile.Text = curFile.ToString();
 
                 Task<bool>[] results = new Task<bool>[count];
-                tsProcessing.Text = "Starting frame capture";
+                tsProcessing.Text = "Building sheets";
+                //tsProcessing.Text = "Starting frame capture";
                 int i = 0;
 
                 TaskFactory ts = new TaskFactory();
 
                 foreach (ContactSheet cs in sheets)
                 {
+                    cs.SheetPrinted += SheetPrinted;
                     cs.Rows = (int)rowsSelect.Value;
                     cs.Columns = (int)colsSelect.Value;
                     cs.Width = (int)widthSelect.Value;
@@ -151,12 +176,12 @@ namespace Thumbnailer
                     results[i] = t;
                     t.Start();
                     i++;
-                    tsPbar.PerformStep();
+                    //tsPbar.PerformStep();
                     tsCurrentFile.Text = (++curFile).ToString();
                     Refresh();
                 }
 
-                tsProcessing.Text = "Building sheets";
+                //tsProcessing.Text = "Building sheets";
                 Refresh();
                 Task.WhenAll(results).Wait();
 
