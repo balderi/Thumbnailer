@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Thumbnailer.Properties;
+using libthumbnailer;
 
 namespace Thumbnailer
 {
@@ -117,9 +118,32 @@ namespace Thumbnailer
             UpdateState();
         }
 
+        private void btnLoadFolder_Click(object sender, EventArgs e)
+        {
+            if(folderBrowserDialog1.ShowDialog() == DialogResult.OK)
+            {
+                var files = Loader.LoadFiles(folderBrowserDialog1.SelectedPath);
+                logger.LogInfo($"Loading {files.Length} files...");
+                pbLoadItems.Maximum = files.Length;
+
+                var newSheets = ContactSheet.BuildSheets(files, logger);
+                sheets.AddRange(newSheets);
+
+                foreach (var s in newSheets)
+                {
+                    fileListBox.Items.Add(s.FilePath);
+                }
+                fileListBox.Refresh();
+                lblItemsCount.Text = fileListBox.Items.Count + " items";
+            }
+            pbLoadItems.Visible = false;
+            UpdateState();
+        }
+
         void SheetPrinted(object sender, EventArgs e)
         {
-            tsPbar.PerformStep();
+            //tsPbar.PerformStep();
+            //tsCurrentFile.Text = (++curFile).ToString();
         }
 
         private void btnStart_Click(object sender, EventArgs e)
@@ -143,8 +167,7 @@ namespace Thumbnailer
                 tsCurrentFile.Text = curFile.ToString();
 
                 Task<bool>[] results = new Task<bool>[count];
-                tsProcessing.Text = "Building sheets";
-                //tsProcessing.Text = "Starting frame capture";
+                tsProcessing.Text = "Starting frame capture";
                 int i = 0;
 
                 TaskFactory ts = new TaskFactory();
@@ -181,12 +204,11 @@ namespace Thumbnailer
                     Refresh();
                 }
 
-                //tsProcessing.Text = "Building sheets";
-                Refresh();
-                Task.WhenAll(results).Wait();
-
+                tsProcessing.Text = "Building sheets";
                 tsPbar.Value = 0;
                 curFile = 0;
+                Refresh();
+                Task.WhenAll(results).Wait();
 
                 bool success = true;
                 logger.LogInfo($"Validating tasks...");
@@ -202,7 +224,7 @@ namespace Thumbnailer
                     success = false;
                     logger.LogError($"Expected {sheets.Count} sheets, but only got {results.Length}");
                 }
-                logger.LogInfo($"All tasks finished successfully: {success}");
+                //logger.LogInfo($"All tasks finished successfully: {success}");
 
                 if (success)
                 {
@@ -695,8 +717,8 @@ namespace Thumbnailer
             BackgroundColor = Color.FromArgb(_currentConfig.BackgroundColor);
             infoFont = FontFamily.Families[cbInfoFontSelect.SelectedIndex];
             timeFont = FontFamily.Families[cbTimeFontSelect.SelectedIndex];
-            cbPrintInfo.Checked = _currentConfig.InfoChecked;
-            cbPrintTime.Checked = _currentConfig.TimeChecked;
+            cbPrintInfo.Checked = _currentConfig.PrintInfo;
+            cbPrintTime.Checked = _currentConfig.PrintTime;
         }
     }
 }

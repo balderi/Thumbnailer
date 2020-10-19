@@ -1,15 +1,14 @@
 ﻿using System.IO;
-using System.Xml;
 using System.Xml.Serialization;
 
-namespace Thumbnailer
+namespace libthumbnailer
 {
-    public class Config
+    class Config
     {
         [XmlElement(ElementName = "Rows")]
         public int Rows { get; set; }
 
-        [XmlElement(ElementName ="Columns")]
+        [XmlElement(ElementName = "Columns")]
         public int Columns { get; set; }
 
         [XmlElement(ElementName = "Width")]

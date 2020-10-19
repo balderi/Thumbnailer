@@ -6,6 +6,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
+using System.Text.Json;
 
 namespace Thumbnailer
 {
@@ -24,42 +25,124 @@ namespace Thumbnailer
         public List<Thumbnail> Thumbnails { get; }
         readonly Logger _logger;
 
+        int aspectRatio = 1;
+
         public ContactSheet(string filePath, Logger logger)
         {
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
             _logger = logger;
             FilePath = filePath;
-            Duration = GetDuration();
-            FileInfo = GetFileInfo();
-            AudioInfo = GetAudioInfo();
-            VideoInfo = GetVideoInfo();
+
+            var probe = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "ffprobe",
+                    Arguments = $"-show_streams -show_format -print_format json \"{filePath}\"",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    CreateNoWindow = true
+                }
+            };
+
+            string output;
+            try
+            {
+                probe.Start();
+                output = probe.StandardOutput.ReadToEnd().Trim();
+                probe.WaitForExit();
+                probe.Dispose();
+            }
+            catch
+            {
+                _logger.LogError($"ffprobe failed to start.");
+                throw new FfprobeException();
+            }
+
+            JsonDocument doc = JsonDocument.Parse(output);
+            JsonElement root = doc.RootElement;
+
+            Duration = root.TryGetProperty("format", out var format) ? double.Parse(format.GetProperty("duration").GetString()) : -1;
+            FileInfo = root.TryGetProperty("format", out format) ? GetFileInfo(format) : "Unknown file format";
+
+            VideoInfo = TryGetIndex(root.GetProperty("streams"), "video", out int vindex) ?
+                        GetVideoInfo(root.GetProperty("streams")[vindex]) : "Unknown video";
+
+            AudioInfo = TryGetIndex(root.GetProperty("streams"), "audio", out int aindex) ?
+                        GetAudioInfo(root.GetProperty("streams")[aindex]) : "Unknown audio";
+
+            try
+            {
+                // If the file has some weird aspect ratio - like 2:1 - the thumbnails will be distorted
+                // So we check for it and adjust accordingly elsewhere - otherwise the ratio is initialized as 1
+                aspectRatio = int.Parse(root.GetProperty("streams")[vindex].GetProperty("sample_aspect_ratio").GetString().Split(':')[0]);
+            }
+            catch { }
+
             Thumbnails = new List<Thumbnail>();
             Height = 0;
+        }
+
+        bool TryGetIndex(JsonElement streams, string streamName, out int index)
+        {
+            int len = streams.GetArrayLength();
+
+            for (int i = 0; i < len; i++)
+            {
+                if (streams[i].TryGetProperty("codec_type", out var codecName) && codecName.GetString() == streamName)
+                {
+                    index = i;
+                    return true;
+                }
+            }
+
+            index = -1;
+            return false;
+        }
+
+        string GetFileInfo(JsonElement format)
+        {
+            var size = format.TryGetProperty("size", out var Jsize) ? Jsize.GetString() : "N/A";
+            var duration = format.TryGetProperty("duration", out var Jduration) ? Jduration.GetString() : "N/A";
+            var bitRate = format.TryGetProperty("bit_rate", out var JbitRate) ? JbitRate.GetString() : "N/A";
+
+            return $"Size: {size} bytes ({ConvertToKiB(size)}B), duration: {ConvertToHMS(double.Parse(duration))}, avg. bitrate: {ConvertToKB(bitRate)}b/s";
+        }
+
+        string GetAudioInfo(JsonElement audioStream)
+        {
+            var codecName = audioStream.TryGetProperty("codec_name", out var JcodecName) ? JcodecName.GetString() : "N/A";
+            var sampleRate = audioStream.TryGetProperty("sample_rate", out var JsampleRate) ? JsampleRate.GetString() : "N/A";
+            var channels = audioStream.TryGetProperty("channels", out var Jchannels) ? Jchannels.GetInt32() : 0;
+            var bitRate = audioStream.TryGetProperty("bit_rate", out var JbitRate) ? JbitRate.GetString() : "N/A";
+
+            return $"Audio: {codecName}, {sampleRate} Hz, {channels} channels, {ConvertToKB(bitRate)}b/s";
+        }
+
+        string GetVideoInfo(JsonElement videoStream)
+        {
+            var codecName = videoStream.TryGetProperty("codec_name", out var JcodecName) ? JcodecName.GetString() : "N/A";
+            var width = videoStream.TryGetProperty("codec_name", out var Jwidth) ? Jwidth.GetString() : "N/A";
+            var height = videoStream.TryGetProperty("codec_name", out var Jheight) ? Jheight.GetString() : "N/A";
+            var frameRate = videoStream.TryGetProperty("avg_frame_rate", out var JframeRate) ? JframeRate.GetString() : "N/A";
+            var bitRate = videoStream.TryGetProperty("bit_rate", out var JbitRate) ? JbitRate.GetString() : "N/A";
+
+            return $"Video: {codecName}, {width}x{height}, {GetFps(frameRate)}, {ConvertToKB(bitRate)}b/s";
         }
 
         void GenerateThumbnails()
         {
             double tween = Duration / (Rows * Columns);
 
-            //for (int i = 0; i < (Rows * Columns); i++)
-            //{
-            //    var start = DateTime.Now;
-            //    _logger.LogInfo($"Current frame = {(int)(i * tween * _vr.FrameRate.ToDouble())}");
-            //    Thumbnail t = new Thumbnail(_vr.ReadVideoFrame((int)(i * tween * _vr.FrameRate.ToDouble())), i * tween);
-            //    Thumbnails.Add(t);
-            //    _logger.LogInfo($"Time for frame: {DateTime.Now.Subtract(start).TotalSeconds} seconds");
-            //}
-
             string dir = "temp/temp_" + (FilePath.GetHashCode() + DateTime.Now.Millisecond);
             Directory.CreateDirectory(dir);
-            //_logger.LogInfo($"Generating thumbnails for file {FilePath}, in directory {dir}");
 
             var proc = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "ffmpeg",
-                    Arguments = "-i \"" + FilePath + "\" -vf fps=1/" + tween + " " + dir + "/img%05d.bmp",
+                    Arguments = "-i \"" + FilePath + "\" -vf fps=1/" + tween + " " + dir + "/img%05d.png",
                     UseShellExecute = false,
                     CreateNoWindow = true
                 }
@@ -81,168 +164,7 @@ namespace Thumbnailer
             foreach (string s in Directory.GetFiles(dir))
             {
                 Thumbnail t = new Thumbnail(s, ++count * tween);
-                //_logger.LogInfo($"Current frame = {count * tween * 29.97}");
                 Thumbnails.Add(t);
-            }
-        }
-
-        double GetDuration()
-        {
-            //return Math.Round(_vr.FrameCount / _vr.FrameRate.ToDouble());
-            //_logger.LogInfo($"Getting duration for file {FilePath}...");
-            var probe = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "ffprobe",
-                    Arguments = "-v quiet -print_format compact=print_section=0:nokey=1:escape=csv -show_entries format=duration \"" + FilePath + "\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true
-                }
-            };
-
-            string output;
-            try
-            {
-                probe.Start();
-                output = probe.StandardOutput.ReadToEnd().Replace(Environment.NewLine, "").Trim();
-                probe.WaitForExit();
-                probe.Dispose();
-            }
-            catch
-            {
-                _logger.LogError($"ffprobe failed to start.");
-                throw new FfprobeException();
-            }
-
-            if (!double.TryParse(output, out double retval))
-            {
-                _logger.LogError($"Invalid duration for file {FilePath}...");
-                throw new ArgumentException("Invalid duration");
-            }
-            else
-            {
-                return Math.Round(retval);
-            }
-        }
-
-        string GetFileInfo()
-        {
-            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
-            var probe = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "ffprobe",
-                    Arguments = "-v quiet -print_format compact=print_section=0:nokey=1:escape=csv -show_entries format=size,duration,bit_rate \"" + FilePath + "\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true
-                }
-            };
-
-            string[] output;
-            try
-            {
-                probe.Start();
-                output = probe.StandardOutput.ReadToEnd().Replace(Environment.NewLine, "").Trim().Split('|');
-                probe.WaitForExit();
-                probe.Dispose();
-            }
-            catch
-            {
-                _logger.LogError($"ffprobe failed to start.");
-                throw new FfprobeException();
-            }
-
-            try
-            {
-                return $"Size: {output[1]} bytes ({ConvertToKiB(output[1])}B), duration: {ConvertToHMS(double.Parse(output[0]))}, avg. bitrate: {ConvertToKB(output[2])}b/s";
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e.Message);
-                return "unknown";
-            }
-        }
-
-        string GetAudioInfo()
-        {
-            var probe = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "ffprobe",
-                    Arguments = "-v quiet -print_format compact=print_section=0:nokey=1:escape=csv -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels,bit_rate \"" + FilePath + "\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true
-                }
-            };
-
-            string[] output;
-            try
-            {
-                probe.Start();
-                output = probe.StandardOutput.ReadToEnd().Replace(Environment.NewLine, "").Trim().Split('|');
-                probe.WaitForExit();
-                probe.Dispose();
-            }
-            catch
-            {
-                _logger.LogError($"ffprobe failed to start.");
-                throw new FfprobeException();
-            }
-
-            try
-            {
-                return $"Audio: {output[0]}, {output[1]} Hz, {output[2]} channels, {ConvertToKB(output[3])}b/s";
-            }
-            catch (Exception e)
-            {
-                _logger.LogWarning($"Getting audio info on file {FilePath} faled with exception: {e.Message}");
-                return "Audio: unknown";
-            }
-        }
-
-        string GetVideoInfo()
-        {
-            var probe = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "ffprobe",
-                    Arguments = "-v quiet -print_format compact=print_section=0:nokey=1:escape=csv -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate,bit_rate \"" + FilePath + "\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true
-                }
-            };
-
-            string[] output;
-            try
-            {
-                probe.Start();
-                output = probe.StandardOutput.ReadToEnd().Replace(Environment.NewLine, "").Trim().Split('|');
-                probe.WaitForExit();
-                probe.Dispose();
-            }
-            catch
-            {
-                _logger.LogError($"ffprobe failed to start.");
-                throw new FfprobeException();
-            }
-
-            try
-            {
-                return $"Video: {output[0]}, {output[1]}x{output[2]}, {GetFps(output[3])}, {ConvertToKB(output[4])}b/s";
-            }
-            catch (Exception e)
-            {
-                _logger.LogWarning($"Getting video info on file {FilePath} faled with exception: {e.Message}");
-                return "Video: unknown";
             }
         }
 
@@ -250,7 +172,7 @@ namespace Thumbnailer
         {
             int imgWidth = (Width - (Columns * Gap) - 4) / Columns;
             double tw = Thumbnails[0].Image.Width;
-            double th = Thumbnails[0].Image.Height;
+            double th = Thumbnails[0].Image.Height / aspectRatio;
             double ratio = th / tw;
             int imgHeight = (int)Math.Round(ratio * imgWidth);
             return (imgHeight * Rows) + 2 + (Rows * Gap);
@@ -373,7 +295,7 @@ namespace Thumbnailer
             double tw = Thumbnails[0].Image.Width;
             double th = Thumbnails[0].Image.Height;
             double ratio = th / tw;
-            int imgHeight = (int)Math.Round(ratio * imgWidth);
+            int imgHeight = (int)Math.Round(ratio * imgWidth / aspectRatio);
             int infoHeight = 0;
 
             Font infoF = new Font(infoFont, infoFontSize);
@@ -441,7 +363,6 @@ namespace Thumbnailer
                 try
                 {
                     bitmap.Save(filename + ".png", ImageFormat.Png);
-                    //_logger.LogInfo($"Successfully saved file {filename}.png");
                 }
                 catch (Exception e)
                 {
@@ -473,19 +394,18 @@ namespace Thumbnailer
 
             foreach(string file in files)
             {
-                //logger.LogInfo($"Creating contact sheet object for file {file}...");
                 try
                 {
                     ContactSheet cs = new ContactSheet(file, logger);
                     retval.Add(cs);
                     OnSheetCreated(EventArgs.Empty);
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
-                    logger.LogError($"Exception during sheet-building: {e.Message}");
-                    throw e;
+                    logger.LogError($"Exception during sheet-building of file {file}: {e.Message}");
+                    //throw e;
+                    continue;
                 }
-                //logger.LogInfo($"Object created for file {file}");
             }
 
             return retval;
