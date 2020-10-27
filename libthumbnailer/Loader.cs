@@ -18,17 +18,24 @@ namespace libthumbnailer
 
         public static event FileLoadedEventHandler FileLoadedEvent;
 
-        public static string[] LoadFiles(string path)
+        public static IEnumerable<string> LoadFiles(string path)
         {
             List<string> retval = new List<string>();
 
-            retval.AddRange(GetFiles(path));
-            retval.AddRange(GetDirs(path));
+            if(File.Exists(path)) // path to single file
+            {
+                retval.Add(path);
+            }
+            else // path to directory
+            {
+                retval.AddRange(GetFiles(path));
+                retval.AddRange(GetDirs(path));
+            }
 
-            return retval.ToArray();
+            return retval;
         }
 
-        static List<string> GetFiles(string path)
+        static IEnumerable<string> GetFiles(string path)
         {
             List<string> retval = new List<string>();
 
@@ -45,7 +52,7 @@ namespace libthumbnailer
             return retval;
         }
 
-        static List<string> GetDirs(string path)
+        static IEnumerable<string> GetDirs(string path)
         {
             List<string> retval = new List<string>();
 

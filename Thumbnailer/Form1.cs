@@ -103,10 +103,10 @@ namespace Thumbnailer
                 pbLoadItems.Value = 0;
                 pbLoadItems.Visible = true;
                 var fileNames = Loader.LoadFiles(folderBrowserDialog1.SelectedPath);
-                logger.LogInfo($"Loading {fileNames.Length} files...");
-                pbLoadItems.Maximum = fileNames.Length;
+                logger.LogInfo($"Loading {fileNames.Count()} files...");
+                pbLoadItems.Maximum = fileNames.Count();
 
-                fileListBox.Items.AddRange(fileNames);
+                fileListBox.Items.AddRange(fileNames.ToArray());
 
                 //var newSheets = ContactSheet.BuildSheets(files, logger);
                 //sheets.AddRange(newSheets);
