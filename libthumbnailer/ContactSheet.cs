@@ -5,7 +5,9 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
+using System.Globalization;
 using System.Threading.Tasks;
 
 namespace libthumbnailer
@@ -27,8 +29,13 @@ namespace libthumbnailer
         readonly Logger _logger;
         int _aspectRatio = 1;
 
+        public static event EventHandler<string> SheetCreated;
+        public event EventHandler<string> SheetPrinted;
+        public static event EventHandler<string> AllSheetsPrinted;
+
         public ContactSheet(string filePath, Logger logger)
         {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
             _logger = logger;
             FilePath = filePath;
             GetInfo();
@@ -76,29 +83,37 @@ namespace libthumbnailer
             AudioInfo = TryGetIndex(root.GetProperty("streams"), "audio", out int aindex) ?
                         Utils.GetAudioInfo(root.GetProperty("streams")[aindex]) : "Unknown audio";
 
-            try
+            // If the file has some weird aspect ratio - like 2:1 - the thumbnails will be distorted
+            // So we check for it and adjust accordingly elsewhere - otherwise the ratio is initialized as 1
+            if(vindex > 0)
             {
-                // If the file has some weird aspect ratio - like 2:1 - the thumbnails will be distorted
-                // So we check for it and adjust accordingly elsewhere - otherwise the ratio is initialized as 1
-                _aspectRatio = int.Parse(root.GetProperty("streams")[vindex].GetProperty("sample_aspect_ratio").GetString().Split(':')[0]);
+                if (root.GetProperty("streams")[vindex].TryGetProperty("sample_aspect_ratio", out var aspect))
+                {
+                    int w = int.Parse(aspect.GetString().Split(':')[0]);
+                    int h = int.Parse(aspect.GetString().Split(':')[1]);
+                    if (w > h)
+                        _aspectRatio = w / h;
+                }
             }
-            catch { }
         }
 
         bool TryGetIndex(JsonElement streams, string streamName, out int index)
         {
             int len = streams.GetArrayLength();
+            index = -1;
+
+            if (len < 1)
+                return false;
 
             for (int i = 0; i < len; i++)
             {
-                if (streams[i].TryGetProperty("codec_name", out var codecName) && codecName.GetString() == streamName)
+                if (streams[i].TryGetProperty("codec_type", out var codecName) && codecName.GetString() == streamName)
                 {
                     index = i;
                     return true;
                 }
             }
 
-            index = -1;
             return false;
         }
 
@@ -119,6 +134,21 @@ namespace libthumbnailer
                     CreateNoWindow = true
                 }
             };
+
+            //var StartInfo = new ProcessStartInfo
+            //{
+            //    FileName = "ffmpeg",
+            //    Arguments = $"-i \"{FilePath}\" -vf fps=1/{tween} {dir}/img%05d.png",
+            //    UseShellExecute = false,
+            //    RedirectStandardOutput = true,
+            //    RedirectStandardError = true,
+            //    CreateNoWindow = true
+            //};
+
+            //var proc = ProcessAsync.RunAsync(StartInfo, 10000);
+            //await proc;
+            //_logger.LogInfo(proc.Result.StdErr.Replace("\n", Environment.NewLine));
+            //_logger.LogInfo(proc.Result.StdOut.Replace("\n", Environment.NewLine));
 
             try
             {
@@ -147,7 +177,7 @@ namespace libthumbnailer
                             Environment.NewLine + VideoInfo;
         }
 
-        public Task<bool> PrintSheet(string filename, bool printInfo, FontFamily infoFont, int infoFontSize,
+        public bool PrintSheet(string filename, bool printInfo, FontFamily infoFont, int infoFontSize,
                                Color infoFontColor, bool printTime, FontFamily timeFont, int timeFontSize,
                                Color timeFontColor, Color timeShadowColor, Color backgroundColor)
         {
@@ -183,8 +213,6 @@ namespace libthumbnailer
                     canvas.CompositingQuality = CompositingQuality.HighQuality;
                     canvas.Clear(backgroundColor);
                     int idx = 0;
-                    if (printInfo)
-                        canvas.DrawString(PrintInfo(), infoF, infoB, new PointF(2, 2));
 
                     for (int i = 0; i < Rows; i++)
                     {
@@ -221,6 +249,10 @@ namespace libthumbnailer
                             idx++;
                         }
                     }
+
+                    if (printInfo)
+                        canvas.DrawString(PrintInfo(), infoF, infoB, new PointF(2, 2));
+
                     canvas.Save();
                 }
                 try
@@ -230,7 +262,7 @@ namespace libthumbnailer
                 catch (Exception e)
                 {
                     _logger.LogError($"Unable to save file {filename}: {e.Message}");
-                    return Task.FromResult(false);
+                    return false;
                 }
 
                 bitmap.Dispose();
@@ -240,19 +272,77 @@ namespace libthumbnailer
                     t.Dispose();
                 }
             }
-            SheetBuiltEvent?.Invoke(new SheetPrintedEventArgs(FilePath));
-            return Task.FromResult(true);
+            SheetPrinted?.Invoke(this, FilePath);
+            return true;
         }
 
-        public delegate void SheetPrintedEventHandler(SheetPrintedEventArgs e);
+        public static List<ContactSheet> BuildSheets(string[] files, Logger logger)
+        {
+            var retval = new List<ContactSheet>();
 
-        public event SheetPrintedEventHandler SheetBuiltEvent;
+            foreach (string file in files)
+            {
+                try
+                {
+                    //ContactSheet cs = new ContactSheet(file, logger);
+                    retval.Add(ContactSheetFactory.CreateContactSheet(file, logger));
+                    SheetCreated?.Invoke(null, file);
+                }
+                catch (Exception e)
+                {
+                    logger.LogError($"Exception during sheet-building of file {file}: {e.Message}");
+                    continue;
+                }
+            }
+
+            return retval;
+        }
+
+        public static async Task PrintSheets(List<ContactSheet> sheets, Logger logger, string outputPath = null)
+        {
+            var start = DateTime.Now;
+            var results = new Task<bool>[sheets.Count];
+            int i = 0;
+
+            foreach (ContactSheet cs in sheets)
+            {
+                string filePath;
+                cs.Rows = Config.CurrentConfig.Rows;
+                cs.Columns = Config.CurrentConfig.Columns;
+                cs.Width = Config.CurrentConfig.Width;
+                cs.Gap = Config.CurrentConfig.Gap;
+
+                if (string.IsNullOrEmpty(outputPath))
+                {
+                    filePath = cs.FilePath;
+                }
+                else
+                {
+                    filePath = outputPath + "/" + new FileInfo(cs.FilePath).Name;
+                }
+
+                var t = new Task<bool>(() =>
+                {
+                    return cs.PrintSheet(filePath, Config.CurrentConfig.PrintInfo, 
+                                                     Utils.GetFontFamilyFromName(Config.CurrentConfig.InfoFont), 
+                                                     Config.CurrentConfig.InfoFontSize, 
+                                                     Color.FromArgb(Config.CurrentConfig.InfoColor), 
+                                                     Config.CurrentConfig.PrintTime, 
+                                                     Utils.GetFontFamilyFromName(Config.CurrentConfig.TimeFont), 
+                                                     Config.CurrentConfig.TimeFontSize, 
+                                                     Color.FromArgb(Config.CurrentConfig.TimeColor), 
+                                                     Color.FromArgb(Config.CurrentConfig.ShadowColor), 
+                                                     Color.FromArgb(Config.CurrentConfig.BackgroundColor));
+                });
+                results[i] = t;
+                t.Start();
+                i++;
+            }
+
+            await Task.WhenAll(results);
+
+            AllSheetsPrinted?.Invoke(null, "All done!");
+            logger.LogInfo($"*** Done in {DateTime.Now.Subtract(start).TotalSeconds} seconds ***");
+        }
     }
-
-    public class SheetPrintedEventArgs
-    {
-        public string FilePath { get; set; }
-        public SheetPrintedEventArgs(string filePath) { FilePath = filePath; }
-    }
-
 }

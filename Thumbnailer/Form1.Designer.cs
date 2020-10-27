@@ -125,11 +125,11 @@
             this.tsFiles = new System.Windows.Forms.ToolStripStatusLabel();
             this.tsStatusLabel = new System.Windows.Forms.ToolStripStatusLabel();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.btnLoadFolder = new System.Windows.Forms.Button();
             this.pbLoadItems = new System.Windows.Forms.ProgressBar();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.openConfigDialog = new System.Windows.Forms.OpenFileDialog();
             this.saveConfigDialog = new System.Windows.Forms.SaveFileDialog();
-            this.btnLoadFolder = new System.Windows.Forms.Button();
             this.gbConfig.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.colsSelect)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.gapSelect)).BeginInit();
@@ -512,6 +512,7 @@
             this.cbPrintInfo.TabIndex = 0;
             this.cbPrintInfo.Text = "Info Text:";
             this.cbPrintInfo.UseVisualStyleBackColor = true;
+            this.cbPrintInfo.CheckedChanged += new System.EventHandler(this.cbPrintInfo_CheckedChanged);
             // 
             // cbPrintTime
             // 
@@ -524,6 +525,7 @@
             this.cbPrintTime.TabIndex = 16;
             this.cbPrintTime.Text = "Time Stamp:";
             this.cbPrintTime.UseVisualStyleBackColor = true;
+            this.cbPrintTime.CheckedChanged += new System.EventHandler(this.cbPrintTime_CheckedChanged);
             // 
             // cbTimeFontSelect
             // 
@@ -1017,6 +1019,16 @@
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Files";
             // 
+            // btnLoadFolder
+            // 
+            this.btnLoadFolder.Location = new System.Drawing.Point(8, 48);
+            this.btnLoadFolder.Name = "btnLoadFolder";
+            this.btnLoadFolder.Size = new System.Drawing.Size(100, 25);
+            this.btnLoadFolder.TabIndex = 15;
+            this.btnLoadFolder.Text = "Load Folder";
+            this.btnLoadFolder.UseVisualStyleBackColor = true;
+            this.btnLoadFolder.Click += new System.EventHandler(this.btnLoadFolder_Click);
+            // 
             // pbLoadItems
             // 
             this.pbLoadItems.Location = new System.Drawing.Point(114, 413);
@@ -1048,16 +1060,6 @@
             this.saveConfigDialog.DefaultExt = "xml";
             this.saveConfigDialog.Filter = "XML Files(*.xml)|*.xml";
             // 
-            // btnLoadFolder
-            // 
-            this.btnLoadFolder.Location = new System.Drawing.Point(8, 48);
-            this.btnLoadFolder.Name = "btnLoadFolder";
-            this.btnLoadFolder.Size = new System.Drawing.Size(100, 25);
-            this.btnLoadFolder.TabIndex = 15;
-            this.btnLoadFolder.Text = "Load Folder";
-            this.btnLoadFolder.UseVisualStyleBackColor = true;
-            this.btnLoadFolder.Click += new System.EventHandler(this.btnLoadFolder_Click);
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -1076,9 +1078,7 @@
             this.MinimumSize = new System.Drawing.Size(740, 740);
             this.Name = "Form1";
             this.Text = "Thumbnailer";
-            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.Form1_FormClosed);
-            this.Paint += new System.Windows.Forms.PaintEventHandler(this.Form1_Paint);
-            this.Resize += new System.EventHandler(this.Form1_Resize);
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.gbConfig.ResumeLayout(false);
             this.gbConfig.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.colsSelect)).EndInit();

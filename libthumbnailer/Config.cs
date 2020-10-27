@@ -3,7 +3,7 @@ using System.Xml.Serialization;
 
 namespace libthumbnailer
 {
-    class Config
+    public class Config
     {
         [XmlElement(ElementName = "Rows")]
         public int Rows { get; set; }
@@ -49,11 +49,19 @@ namespace libthumbnailer
 
         public string Path { get; set; }
 
+        public static Config CurrentConfig { get; private set; }
+
         readonly string _defaultPath = "config.xml";
 
-        public Config()
+        private Config()
         {
+            // Parameterless constructor for XML serialization
+        }
 
+        public Config(bool loadDefault = false)
+        {
+            if (loadDefault)
+                CurrentConfig = Load(_defaultPath);
         }
 
         public void Save()
@@ -80,6 +88,7 @@ namespace libthumbnailer
             var retval = (Config)xmls.Deserialize(fs);
             fs.Close();
             retval.Path = path;
+            CurrentConfig = retval;
             return retval;
         }
     }

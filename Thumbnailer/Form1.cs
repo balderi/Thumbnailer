@@ -8,20 +8,19 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Thumbnailer.Properties;
 using libthumbnailer;
+using System.Linq;
 
 namespace Thumbnailer
 {
     public partial class Form1 : Form
     {
         Config _currentConfig;
-        string[] fileNames;
-        string outputPath;
         Color InfoColor, TimeColor, ShadowColor, BackgroundColor;
         FontFamily infoFont, timeFont;
         bool IsFullscreen;
         int curFile;
-        Logger logger;
-        List<ContactSheet> sheets;
+        readonly Logger logger;
+        readonly List<ContactSheet> sheets;
 
         public Form1()
         {
@@ -29,7 +28,6 @@ namespace Thumbnailer
             logger = new Logger();
             InitializeComponent();
             IsFullscreen = false;
-            outputPath = "";
             PopulateFonts();
             ApplyConfig();
             tsProcessing.Visible = false;
@@ -68,7 +66,7 @@ namespace Thumbnailer
             GC.Collect();
         }
 
-        void SheetCreated(object sender, EventArgs e)
+        void SheetCreated(object sender, string e)
         {
             pbLoadItems.PerformStep();
         }
@@ -79,40 +77,20 @@ namespace Thumbnailer
             {
                 pbLoadItems.Value = 0;
                 pbLoadItems.Visible = true;
-                fileNames = openVideoDialog.FileNames;
+                var fileNames = openVideoDialog.FileNames;
                 logger.LogInfo($"Loading {fileNames.Length} files...");
                 pbLoadItems.Maximum = fileNames.Length;
 
-                var newSheets = ContactSheet.BuildSheets(fileNames, logger);
-                sheets.AddRange(newSheets);
+                fileListBox.Items.AddRange(fileNames);
+                //var newSheets = ContactSheet.BuildSheets(fileNames, logger);
+                //sheets.AddRange(newSheets);
 
-                foreach(var s in newSheets)
-                {
-                    fileListBox.Items.Add(s.FilePath);
-                }
+                //foreach(var s in newSheets)
+                //{
+                //    fileListBox.Items.Add(s.FilePath);
+                //}
                 fileListBox.Refresh();
                 lblItemsCount.Text = fileListBox.Items.Count + " items";
-
-                //foreach (string fileName in fileNames)
-                //{
-                //    logger.LogInfo($"Creating contact sheet object for file {fileName}...");
-                //    try
-                //    {
-                //        ContactSheet cs = new ContactSheet(fileName, logger);
-                //        sheets.Add(cs);
-                //        fileListBox.Items.Add(fileName);
-                //        lblItemsCount.Text = fileListBox.Items.Count + " items";
-                //        pbLoadItems.PerformStep();
-                //        fileListBox.Refresh();
-                //    }
-                //    catch(Exception ex)
-                //    {
-                //        MessageBox.Show(ex.Message);
-                //        return;
-                //    }
-                //    logger.LogInfo($"Object created for file {fileName}");
-                //}
-                //logger.LogInfo($"Loaded {fileNames.Length} files");
             }
             pbLoadItems.Visible = false;
             UpdateState();
@@ -122,17 +100,21 @@ namespace Thumbnailer
         {
             if(folderBrowserDialog1.ShowDialog() == DialogResult.OK)
             {
-                var files = Loader.LoadFiles(folderBrowserDialog1.SelectedPath);
-                logger.LogInfo($"Loading {files.Length} files...");
-                pbLoadItems.Maximum = files.Length;
+                pbLoadItems.Value = 0;
+                pbLoadItems.Visible = true;
+                var fileNames = Loader.LoadFiles(folderBrowserDialog1.SelectedPath);
+                logger.LogInfo($"Loading {fileNames.Length} files...");
+                pbLoadItems.Maximum = fileNames.Length;
 
-                var newSheets = ContactSheet.BuildSheets(files, logger);
-                sheets.AddRange(newSheets);
+                fileListBox.Items.AddRange(fileNames);
 
-                foreach (var s in newSheets)
-                {
-                    fileListBox.Items.Add(s.FilePath);
-                }
+                //var newSheets = ContactSheet.BuildSheets(files, logger);
+                //sheets.AddRange(newSheets);
+
+                //foreach (var s in newSheets)
+                //{
+                //    fileListBox.Items.Add(s.FilePath);
+                //}
                 fileListBox.Refresh();
                 lblItemsCount.Text = fileListBox.Items.Count + " items";
             }
@@ -140,119 +122,130 @@ namespace Thumbnailer
             UpdateState();
         }
 
-        void SheetPrinted(object sender, EventArgs e)
+        void SheetPrinted(object sender, string e)
         {
-            //tsPbar.PerformStep();
-            //tsCurrentFile.Text = (++curFile).ToString();
+            tsPbar.PerformStep();
+            tsCurrentFile.Text = (++curFile).ToString();
+        }
+
+        void AllSheetsPrinted(object sender, string e)
+        {
+            EnableItems();
+            MessageBox.Show(e);
+            ContactSheet.AllSheetsPrinted -= AllSheetsPrinted;
         }
 
         private void btnStart_Click(object sender, EventArgs e)
         {
-            var start = DateTime.Now;
             logger.LogInfo($"Starting conversion");
             int count = fileListBox.Items.Count;
             if (count > 0)
             {
-                logger.LogInfo($"Converting {count} files...");
-                btnStart.Enabled = false;
+                logger.LogInfo($"Building {count} sheets...");
+                tsProcessing.Text = "Starting image capture...";
+                foreach (var f in fileListBox.Items)
+                {
+                    sheets.Add(ContactSheetFactory.CreateContactSheet(f.ToString(), logger));
+                }
+
+                tsProcessing.Text = "Processing...";
+                Refresh();
+
+                curFile = 0;
                 tsPbar.Value = 0;
-                tsProcessing.Visible = true;
-                tsPbar.Visible = true;
-                tsCurrentFile.Visible = true;
-                tsOf.Visible = true;
-                tsTotalFiles.Visible = true;
-                tsFiles.Visible = true;
-                tsTotalFiles.Text = count.ToString();
                 tsPbar.Maximum = count;
                 tsCurrentFile.Text = curFile.ToString();
-
-                Task<bool>[] results = new Task<bool>[count];
-                tsProcessing.Text = "Starting frame capture";
-                int i = 0;
-
-                TaskFactory ts = new TaskFactory();
-
-                foreach (ContactSheet cs in sheets)
-                {
-                    cs.SheetPrinted += SheetPrinted;
-                    cs.Rows = (int)rowsSelect.Value;
-                    cs.Columns = (int)colsSelect.Value;
-                    cs.Width = (int)widthSelect.Value;
-                    cs.Gap = (int)gapSelect.Value;
-                    var t = new Task<bool>(() =>
-                    {
-                        if (cbSameDir.Checked)
-                        {
-                            outputPath = cs.FilePath;
-                        }
-                        else
-                        {
-                            outputPath = tbOutput.Text + "/" + new FileInfo(cs.FilePath.ToString()).Name;
-                        }
-                        GC.Collect();
-
-                        return cs.PrintSheet(outputPath, cbPrintInfo.Checked, infoFont, (int)infoFontSizeSelect.Value,
-                                             InfoColor, cbPrintTime.Checked, timeFont, (int)timeFontSizeSelect.Value,
-                                             TimeColor, ShadowColor, BackgroundColor);
-                    });
-                    
-                    results[i] = t;
-                    t.Start();
-                    i++;
-                    //tsPbar.PerformStep();
-                    tsCurrentFile.Text = (++curFile).ToString();
-                    Refresh();
-                }
-
-                tsProcessing.Text = "Building sheets";
-                tsPbar.Value = 0;
-                curFile = 0;
-                Refresh();
-                Task.WhenAll(results).Wait();
-
-                bool success = true;
-                logger.LogInfo($"Validating tasks...");
-                foreach (Task<bool> task in results)
-                {
-                    if (!task.Result)
-                    {
-                        success = false;
-                    }
-                }
-                if (results.Length != sheets.Count)
-                {
-                    success = false;
-                    logger.LogError($"Expected {sheets.Count} sheets, but only got {results.Length}");
-                }
-                //logger.LogInfo($"All tasks finished successfully: {success}");
-
-                if (success)
-                {
-                    MessageBox.Show(this, "Done!");
-                }
-                else
-                {
-                    MessageBox.Show(this, "Done with errors!");
-                }
-
-                tsProcessing.Visible = false;
-                tsPbar.Visible = false;
-                tsCurrentFile.Visible = false;
-                tsOf.Visible = false;
-                tsTotalFiles.Visible = false;
-                tsFiles.Visible = false;
-
-                UpdateState();
-
-                GC.Collect();
-
-                logger.LogInfo($"*** Done in {DateTime.Now.Subtract(start).TotalSeconds} seconds ***");
+                tsTotalFiles.Text = count.ToString();
+                DisableItems();
+                sheets.ForEach(x => x.SheetPrinted += SheetPrinted);
+                ContactSheet.AllSheetsPrinted += AllSheetsPrinted;
+                logger.LogInfo($"Converting {count} files...");
+                _ = ContactSheet.PrintSheets(sheets, logger, tbOutput.Text);
             }
             else
             {
-                logger.LogError($"No files loaded.");
                 MessageBox.Show("No files loaded.");
             }
+        }
+
+        private void DisableItems()
+        {
+            tsStatusLabel.Text = "Working...";
+
+            rowsSelect.Enabled = false;
+            colsSelect.Enabled = false;
+            widthSelect.Enabled = false;
+            gapSelect.Enabled = false;
+
+            cbPrintInfo.Enabled = false;
+            infoFontSizeSelect.Enabled = false;
+            cbInfoFontSelect.Enabled = false;
+            btnBackgroundColorSelect.Enabled = false;
+            btnInfoColorSelect.Enabled = false;
+
+            cbPrintTime.Enabled = false;
+            timeFontSizeSelect.Enabled = false;
+            cbTimeFontSelect.Enabled = false;
+            btnTimeColorSelect.Enabled = false;
+            btnShadowColorSelect.Enabled = false;
+
+            fileListBox.Enabled = false;
+            btnLoad.Enabled = false;
+            btnLoadFolder.Enabled = false;
+            btnRemoveSelected.Enabled = false;
+            btnResetSelection.Enabled = false;
+
+            cbSameDir.Enabled = false;
+            tbOutput.Enabled = false;
+            btnOutputSelect.Enabled = false;
+            btnStart.Enabled = false;
+
+            tsProcessing.Visible = true;
+            tsPbar.Visible = true;
+            tsCurrentFile.Visible = true;
+            tsOf.Visible = true;
+            tsTotalFiles.Visible = true;
+            tsFiles.Visible = true;
+        }
+
+        private void EnableItems()
+        {
+            tsStatusLabel.Text = "Ready";
+
+            rowsSelect.Enabled = true;
+            colsSelect.Enabled = true;
+            widthSelect.Enabled = true;
+            gapSelect.Enabled = true;
+
+            cbPrintInfo.Enabled = true;
+            infoFontSizeSelect.Enabled = true;
+            cbInfoFontSelect.Enabled = true;
+            btnBackgroundColorSelect.Enabled = true;
+            btnInfoColorSelect.Enabled = true;
+
+            cbPrintTime.Enabled = true;
+            timeFontSizeSelect.Enabled = true;
+            cbTimeFontSelect.Enabled = true;
+            btnTimeColorSelect.Enabled = true;
+            btnShadowColorSelect.Enabled = true;
+
+            fileListBox.Enabled = true;
+            btnLoad.Enabled = true;
+            btnLoadFolder.Enabled = true;
+            btnRemoveSelected.Enabled = true;
+            btnResetSelection.Enabled = true;
+
+            cbSameDir.Enabled = true;
+            tbOutput.Enabled = true;
+            btnOutputSelect.Enabled = true;
+            btnStart.Enabled = true;
+
+            tsProcessing.Visible = false;
+            tsPbar.Visible = false;
+            tsCurrentFile.Visible = false;
+            tsOf.Visible = false;
+            tsTotalFiles.Visible = false;
+            tsFiles.Visible = false;
         }
 
         private void btnOutputSelect_Click(object sender, EventArgs e)
@@ -269,7 +262,7 @@ namespace Thumbnailer
             btnOutputSelect.Enabled = !btnOutputSelect.Enabled;
         }
 
-        private void Form1_FormClosed(object sender, FormClosedEventArgs e)
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             logger.LogInfo($"Form closing...");
             GC.Collect();
@@ -283,7 +276,7 @@ namespace Thumbnailer
                     {
                         File.Delete(f);
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         logger.LogWarning($"Failed to delete file {f}: {ex.Message}");
                     }
@@ -332,8 +325,7 @@ namespace Thumbnailer
 
         private void RemoveSelectedItems()
         {
-            ListBox.SelectedObjectCollection selectedItems = new ListBox.SelectedObjectCollection(fileListBox);
-            selectedItems = fileListBox.SelectedItems;
+            ListBox.SelectedObjectCollection selectedItems = fileListBox.SelectedItems;
             List<ContactSheet> tempSheetList = new List<ContactSheet>();
 
             if (fileListBox.SelectedIndex != -1)
@@ -382,7 +374,7 @@ namespace Thumbnailer
         {
             if (openVideoDialog.ShowDialog() == DialogResult.OK)
             {
-                fileNames = openVideoDialog.FileNames;
+                var fileNames = openVideoDialog.FileNames;
                 foreach (string fileName in fileNames)
                 {
                     fileListBox.Items.Add(fileName);
@@ -556,11 +548,6 @@ namespace Thumbnailer
             SetDimensions(5, 5);
         }
 
-        private void Form1_Paint(object sender, PaintEventArgs e)
-        {
-
-        }
-
         private void btnInfoColorSelect_Paint(object sender, PaintEventArgs e)
         {
             Size size = new Size(12, 12);
@@ -672,6 +659,16 @@ namespace Thumbnailer
         private void timeFontSizeSelect_ValueChanged(object sender, EventArgs e)
         {
             _currentConfig.TimeFontSize = (int)timeFontSizeSelect.Value;
+        }
+
+        private void cbPrintInfo_CheckedChanged(object sender, EventArgs e)
+        {
+            _currentConfig.PrintInfo = cbPrintInfo.Checked;
+        }
+
+        private void cbPrintTime_CheckedChanged(object sender, EventArgs e)
+        {
+            _currentConfig.PrintTime = cbPrintTime.Checked;
         }
 
         private void btnInfoColorSelect_Click(object sender, EventArgs e)

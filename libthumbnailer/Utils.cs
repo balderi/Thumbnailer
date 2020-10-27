@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Text;
 using System.Text;
 using System.Text.Json;
+using System.Linq;
 
 namespace libthumbnailer
 {
@@ -56,6 +58,12 @@ namespace libthumbnailer
             var bitRate = videoStream.TryGetProperty("bit_rate", out var JbitRate) ? JbitRate.GetString() : "N/A";
 
             return $"Video: {codecName}, {width}x{height}, {Utils.GetFps(frameRate)}, {Converter.ToKB(bitRate)}b/s";
+        }
+
+        public static FontFamily GetFontFamilyFromName(string name)
+        {
+            InstalledFontCollection fontCollection = new InstalledFontCollection();
+            return Array.Find(fontCollection.Families, x => x.Name == name);
         }
     }
 }
