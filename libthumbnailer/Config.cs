@@ -21,10 +21,10 @@ namespace libthumbnailer
         public int BackgroundColor { get; set; }
 
         [XmlElement(ElementName = "InfoColor")]
-        public int InfoColor { get; set; }
+        public int InfoFontColor { get; set; }
 
         [XmlElement(ElementName = "TimeColor")]
-        public int TimeColor { get; set; }
+        public int TimeFontColor { get; set; }
 
         [XmlElement(ElementName = "ShadowColor")]
         public int ShadowColor { get; set; }
@@ -47,7 +47,7 @@ namespace libthumbnailer
         [XmlElement(ElementName = "TimeChecked")]
         public bool PrintTime { get; set; }
 
-        public string Path { get; set; }
+        public string ConfigPath { get; set; }
 
         public static Config CurrentConfig { get; private set; }
 
@@ -66,15 +66,15 @@ namespace libthumbnailer
 
         public void Save()
         {
-            if (string.IsNullOrEmpty(Path))
+            if (string.IsNullOrEmpty(ConfigPath))
                 SaveAs(_defaultPath);
             else
-                SaveAs(Path);
+                SaveAs(ConfigPath);
         }
 
         public void SaveAs(string path)
         {
-            Path = path;
+            ConfigPath = path;
             var xmls = new XmlSerializer(this.GetType());
             var writer = new StreamWriter(path);
             xmls.Serialize(writer, this);
@@ -87,7 +87,7 @@ namespace libthumbnailer
             var xmls = new XmlSerializer(typeof(Config));
             var retval = (Config)xmls.Deserialize(fs);
             fs.Close();
-            retval.Path = path;
+            retval.ConfigPath = path;
             CurrentConfig = retval;
             return retval;
         }

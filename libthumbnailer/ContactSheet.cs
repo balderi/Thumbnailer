@@ -26,8 +26,8 @@ namespace libthumbnailer
         public int Gap { get; set; }
         public List<Thumbnail> Thumbnails { get; }
 
-        readonly Logger _logger;
-        int _aspectRatio = 1;
+        private readonly Logger _logger;
+        private int _aspectRatio = 1;
 
         public static event EventHandler<string> SheetCreated;
         public event EventHandler<string> SheetPrinted;
@@ -38,12 +38,17 @@ namespace libthumbnailer
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
             _logger = logger;
             FilePath = filePath;
-            GetInfo();
+            var info = GetRootInfo();
+            Duration = GetDuration(info);
+            FileInfo = GetFileInfo(info);
+            VideoInfo = GetVideoInfo(info);
+            AudioInfo = GetAudioInfo(info);
+
             Thumbnails = new List<Thumbnail>();
             Height = 0;
         }
 
-        void GetInfo()
+        private JsonElement GetRootInfo()
         {
             var probe = new Process
             {
@@ -72,20 +77,36 @@ namespace libthumbnailer
             }
 
             JsonDocument doc = JsonDocument.Parse(output);
-            JsonElement root = doc.RootElement;
+            return doc.RootElement;
+        }
 
-            Duration = root.TryGetProperty("format", out var format) ? double.Parse(format.GetProperty("duration").GetString()) : -1;
-            FileInfo = root.TryGetProperty("format", out format) ? Utils.GetFileInfo(format) : "Unknown file format";
+        private double GetDuration(JsonElement root)
+        {
+            return root.TryGetProperty("format", out var format) ? double.Parse(format.GetProperty("duration").GetString()) : -1;
+        }
 
-            VideoInfo = TryGetIndex(root.GetProperty("streams"), "video", out int vindex) ?
-                        Utils.GetVideoInfo(root.GetProperty("streams")[vindex]) : "Unknown video";
+        private string GetFileInfo(JsonElement root)
+        {
+            return root.TryGetProperty("format", out var format) ? Utils.GetFileInfo(format) : "Unknown file format";
+        }
 
-            AudioInfo = TryGetIndex(root.GetProperty("streams"), "audio", out int aindex) ?
-                        Utils.GetAudioInfo(root.GetProperty("streams")[aindex]) : "Unknown audio";
+        private string GetVideoInfo(JsonElement root)
+        {
+            return TryGetIndex(root.GetProperty("streams"), "video", out int vindex) ?
+                   Utils.GetVideoInfo(root.GetProperty("streams")[vindex]) : "Unknown video";
+        }
 
+        private string GetAudioInfo(JsonElement root)
+        {
+            return TryGetIndex(root.GetProperty("streams"), "audio", out int aindex) ?
+                   Utils.GetAudioInfo(root.GetProperty("streams")[aindex]) : "Unknown audio";
+        }
+
+        private void TryCalculateRatio(JsonElement root)
+        {
             // If the file has some weird aspect ratio - like 2:1 - the thumbnails will be distorted
             // So we check for it and adjust accordingly elsewhere - otherwise the ratio is initialized as 1
-            if(vindex > 0)
+            if (TryGetIndex(root.GetProperty("streams"), "video", out int vindex) && vindex > 0)
             {
                 if (root.GetProperty("streams")[vindex].TryGetProperty("sample_aspect_ratio", out var aspect))
                 {
@@ -97,7 +118,7 @@ namespace libthumbnailer
             }
         }
 
-        bool TryGetIndex(JsonElement streams, string streamName, out int index)
+        private bool TryGetIndex(JsonElement streams, string streamName, out int index)
         {
             int len = streams.GetArrayLength();
             index = -1;
@@ -117,7 +138,7 @@ namespace libthumbnailer
             return false;
         }
 
-        void GenerateThumbnails()
+        private void GenerateThumbnails()
         {
             double tween = Duration / (Rows * Columns);
 
@@ -154,7 +175,7 @@ namespace libthumbnailer
             }
         }
 
-        string PrintInfo()
+        private string PrintInfo()
         {
             return "File: " + new FileInfo(FilePath).Name + 
                             Environment.NewLine + FileInfo + 
@@ -162,9 +183,7 @@ namespace libthumbnailer
                             Environment.NewLine + VideoInfo;
         }
 
-        public bool PrintSheet(string filename, bool printInfo, FontFamily infoFont, int infoFontSize,
-                               Color infoFontColor, bool printTime, FontFamily timeFont, int timeFontSize,
-                               Color timeFontColor, Color timeShadowColor, Color backgroundColor)
+        public bool PrintSheet(string filename, Config config)
         {
             GenerateThumbnails();
 
@@ -176,13 +195,13 @@ namespace libthumbnailer
             Height = (imgHeight * Rows) + 2 + (Rows * Gap);
             int infoHeight = 0;
 
-            Font infoF = FontFactory.CreateFont(infoFont, infoFontSize);
-            Font timeF = FontFactory.CreateFont(timeFont, timeFontSize);
-            SolidBrush infoB = BrushFactory.CreateBrush(infoFontColor);
-            SolidBrush timeB = BrushFactory.CreateBrush(timeFontColor);
-            SolidBrush timeSB = BrushFactory.CreateBrush(timeShadowColor);
+            Font infoF = FontFactory.CreateFont(Utils.GetFontFamilyFromName(config.InfoFont), config.InfoFontSize);
+            Font timeF = FontFactory.CreateFont(Utils.GetFontFamilyFromName(config.TimeFont), config.TimeFontSize);
+            SolidBrush infoB = BrushFactory.CreateBrush(Color.FromArgb(config.InfoFontColor));
+            SolidBrush timeB = BrushFactory.CreateBrush(Color.FromArgb(config.TimeFontColor));
+            SolidBrush timeSB = BrushFactory.CreateBrush(Color.FromArgb(config.ShadowColor));
 
-            if (printInfo)
+            if (config.PrintInfo)
             {
                 infoHeight = Utils.GetStringHeight(PrintInfo(), infoF);
                 Height += infoHeight;
@@ -196,7 +215,7 @@ namespace libthumbnailer
                     canvas.SmoothingMode = SmoothingMode.HighQuality;
                     canvas.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
                     canvas.CompositingQuality = CompositingQuality.HighQuality;
-                    canvas.Clear(backgroundColor);
+                    canvas.Clear(Color.FromArgb(config.BackgroundColor));
                     int idx = 0;
 
                     for (int i = 0; i < Rows; i++)
@@ -214,7 +233,7 @@ namespace libthumbnailer
                                 _logger.LogWarning($"({FilePath}): {e.Message}");
                                 _logger.LogWarning($"Expecting {Rows * Columns} images, recieved {Thumbnails.Count}");
                             }
-                            if (printTime)
+                            if (config.PrintTime)
                             {
                                 string time = "";
                                 try
@@ -235,7 +254,7 @@ namespace libthumbnailer
                         }
                     }
 
-                    if (printInfo)
+                    if (config.PrintInfo)
                         canvas.DrawString(PrintInfo(), infoF, infoB, new PointF(2, 2));
 
                     canvas.Save();
@@ -282,7 +301,7 @@ namespace libthumbnailer
             return retval;
         }
 
-        public static async Task PrintSheets(List<ContactSheet> sheets, Logger logger, string outputPath = null)
+        public static async Task PrintSheets(List<ContactSheet> sheets, Config config, Logger logger, string outputPath = null)
         {
             var start = DateTime.Now;
             var results = new Task<bool>[sheets.Count];
@@ -307,16 +326,7 @@ namespace libthumbnailer
 
                 var t = new Task<bool>(() =>
                 {
-                    return cs.PrintSheet(filePath, Config.CurrentConfig.PrintInfo, 
-                                                     Utils.GetFontFamilyFromName(Config.CurrentConfig.InfoFont), 
-                                                     Config.CurrentConfig.InfoFontSize, 
-                                                     Color.FromArgb(Config.CurrentConfig.InfoColor), 
-                                                     Config.CurrentConfig.PrintTime, 
-                                                     Utils.GetFontFamilyFromName(Config.CurrentConfig.TimeFont), 
-                                                     Config.CurrentConfig.TimeFontSize, 
-                                                     Color.FromArgb(Config.CurrentConfig.TimeColor), 
-                                                     Color.FromArgb(Config.CurrentConfig.ShadowColor), 
-                                                     Color.FromArgb(Config.CurrentConfig.BackgroundColor));
+                    return cs.PrintSheet(filePath, config);
                 });
                 results[i] = t;
                 t.Start();

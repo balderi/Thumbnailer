@@ -160,7 +160,7 @@ namespace Thumbnailer
                 sheets.ForEach(x => x.SheetPrinted += SheetPrinted);
                 ContactSheet.AllSheetsPrinted += AllSheetsPrinted;
                 logger.LogInfo($"Converting {count} files...");
-                _ = ContactSheet.PrintSheets(sheets, logger, tbOutput.Text);
+                _ = ContactSheet.PrintSheets(sheets, _currentConfig, logger, tbOutput.Text);
             }
             else
             {
@@ -595,7 +595,7 @@ namespace Thumbnailer
         private void saveConfigurationToolStripMenuItem_Click(object sender, EventArgs e)
         {
             _currentConfig.Save();
-            Settings.Default.PreviousConfigPath = _currentConfig.Path;
+            Settings.Default.PreviousConfigPath = _currentConfig.ConfigPath;
             Settings.Default.Save();
         }
 
@@ -675,7 +675,7 @@ namespace Thumbnailer
         {
             if (colorDialog1.ShowDialog() == DialogResult.OK)
             {
-                _currentConfig.InfoColor = colorDialog1.Color.ToArgb();
+                _currentConfig.InfoFontColor = colorDialog1.Color.ToArgb();
                 InfoColor = colorDialog1.Color;
             }
         }
@@ -684,7 +684,7 @@ namespace Thumbnailer
         {
             if (colorDialog1.ShowDialog() == DialogResult.OK)
             {
-                _currentConfig.TimeColor = colorDialog1.Color.ToArgb();
+                _currentConfig.TimeFontColor = colorDialog1.Color.ToArgb();
                 TimeColor = colorDialog1.Color;
             }
         }
@@ -708,8 +708,8 @@ namespace Thumbnailer
             cbTimeFontSelect.SelectedIndex = cbInfoFontSelect.FindString(_currentConfig.TimeFont);
             cbInfoPositionSelect.SelectedIndex = 0;
             cbTimePositionSelect.SelectedIndex = 0;
-            InfoColor = Color.FromArgb(_currentConfig.InfoColor);
-            TimeColor = Color.FromArgb(_currentConfig.TimeColor);
+            InfoColor = Color.FromArgb(_currentConfig.InfoFontColor);
+            TimeColor = Color.FromArgb(_currentConfig.TimeFontColor);
             ShadowColor = Color.FromArgb(_currentConfig.ShadowColor);
             BackgroundColor = Color.FromArgb(_currentConfig.BackgroundColor);
             infoFont = FontFamily.Families[cbInfoFontSelect.SelectedIndex];
