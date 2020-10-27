@@ -51,7 +51,7 @@ namespace libthumbnailer
 
         public static Config CurrentConfig { get; private set; }
 
-        readonly string _defaultPath = "config.xml";
+        private readonly string _defaultPath = "config.xml";
 
         private Config()
         {

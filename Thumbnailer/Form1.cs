@@ -126,6 +126,8 @@ namespace Thumbnailer
         {
             tsPbar.PerformStep();
             tsCurrentFile.Text = (++curFile).ToString();
+            var s = sender as ContactSheet;
+            s.SheetPrinted -= SheetPrinted;
         }
 
         void AllSheetsPrinted(object sender, string e)
