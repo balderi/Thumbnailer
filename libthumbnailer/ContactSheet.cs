@@ -135,21 +135,6 @@ namespace libthumbnailer
                 }
             };
 
-            //var StartInfo = new ProcessStartInfo
-            //{
-            //    FileName = "ffmpeg",
-            //    Arguments = $"-i \"{FilePath}\" -vf fps=1/{tween} {dir}/img%05d.png",
-            //    UseShellExecute = false,
-            //    RedirectStandardOutput = true,
-            //    RedirectStandardError = true,
-            //    CreateNoWindow = true
-            //};
-
-            //var proc = ProcessAsync.RunAsync(StartInfo, 10000);
-            //await proc;
-            //_logger.LogInfo(proc.Result.StdErr.Replace("\n", Environment.NewLine));
-            //_logger.LogInfo(proc.Result.StdOut.Replace("\n", Environment.NewLine));
-
             try
             {
                 proc.Start();
@@ -284,7 +269,6 @@ namespace libthumbnailer
             {
                 try
                 {
-                    //ContactSheet cs = new ContactSheet(file, logger);
                     retval.Add(ContactSheetFactory.CreateContactSheet(file, logger));
                     SheetCreated?.Invoke(null, file);
                 }
