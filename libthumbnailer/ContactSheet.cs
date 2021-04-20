@@ -359,7 +359,7 @@ namespace libthumbnailer
                     }
                     catch(Exception e)
                     {
-                        logger.LogError($"EXCEPTION: {filePath}: {e.Message}");
+                        logger.LogError($"Exceprion caught while printing sheet: {filePath}: {e.Message}");
                         return false;
                     }
                 });

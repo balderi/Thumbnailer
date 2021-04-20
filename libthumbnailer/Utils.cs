@@ -49,12 +49,12 @@ namespace libthumbnailer
         public static string GetVideoInfo(JsonElement videoStream)
         {
             var codecName = videoStream.TryGetProperty("codec_name", out var JcodecName) ? JcodecName.GetString() : "N/A";
-            var width = videoStream.TryGetProperty("codec_name", out var Jwidth) ? Jwidth.GetString() : "N/A";
-            var height = videoStream.TryGetProperty("codec_name", out var Jheight) ? Jheight.GetString() : "N/A";
+            var width = videoStream.TryGetProperty("width", out var Jwidth) ? Jwidth.GetInt32().ToString() : "N/A";
+            var height = videoStream.TryGetProperty("height", out var Jheight) ? Jheight.GetInt32().ToString() : "N/A";
             var frameRate = videoStream.TryGetProperty("avg_frame_rate", out var JframeRate) ? JframeRate.GetString() : "N/A";
             var bitRate = videoStream.TryGetProperty("bit_rate", out var JbitRate) ? JbitRate.GetString() : "N/A";
 
-            return $"Video: {codecName}, {width}x{height}, {Utils.GetFps(frameRate)}, {Converter.ToKB(bitRate)}b/s";
+            return $"Video: {codecName}, {width}x{height}, {GetFps(frameRate)}, {Converter.ToKB(bitRate)}b/s";
         }
 
         public static FontFamily GetFontFamilyFromName(string name)
