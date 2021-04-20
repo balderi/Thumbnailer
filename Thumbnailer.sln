@@ -5,7 +5,9 @@ VisualStudioVersion = 16.0.30011.22
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Thumbnailer", "Thumbnailer\Thumbnailer.csproj", "{94574AF1-E25B-4856-9AD6-42BE914FE692}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "libthumbnailer", "libthumbnailer\libthumbnailer.csproj", "{978DE940-B27B-4B7D-8DC5-45871E9E09F0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "libthumbnailer", "libthumbnailer\libthumbnailer.csproj", "{978DE940-B27B-4B7D-8DC5-45871E9E09F0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThumbnailerCLI", "ThumbnailerCLI\ThumbnailerCLI.csproj", "{6606F89F-95C0-407D-89F5-FF5092303F11}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{978DE940-B27B-4B7D-8DC5-45871E9E09F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{978DE940-B27B-4B7D-8DC5-45871E9E09F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{978DE940-B27B-4B7D-8DC5-45871E9E09F0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6606F89F-95C0-407D-89F5-FF5092303F11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6606F89F-95C0-407D-89F5-FF5092303F11}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6606F89F-95C0-407D-89F5-FF5092303F11}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6606F89F-95C0-407D-89F5-FF5092303F11}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Text;
-using System.Text;
 using System.Text.Json;
-using System.Linq;
 
 namespace libthumbnailer
 {

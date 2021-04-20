@@ -12,13 +12,13 @@ namespace libthumbnailer
 
     public class Loader
     {
-        static string[] exts = new string[] { ".avi", ".mkv", ".wmv", ".mov", ".flv", ".divx", ".mp4", ".m4v", ".rm", ".mpg", ".mpeg" };
+        static readonly string[] exts = new string[] { ".avi", ".mkv", ".wmv", ".mov", ".flv", ".divx", ".mp4", ".m4v", ".rm", ".mpg", ".mpeg", ".qt" };
 
         public delegate void FileLoadedEventHandler(FileLoadedEventArgs e);
 
         public static event FileLoadedEventHandler FileLoadedEvent;
 
-        public static IEnumerable<string> LoadFiles(string path)
+        public static IEnumerable<string> LoadFiles(string path, bool recursive = true)
         {
             List<string> retval = new List<string>();
 
@@ -29,7 +29,10 @@ namespace libthumbnailer
             else // path to directory
             {
                 retval.AddRange(GetFiles(path));
-                retval.AddRange(GetDirs(path));
+                if(recursive)
+                {
+                    retval.AddRange(GetDirs(path));
+                }
             }
 
             return retval;

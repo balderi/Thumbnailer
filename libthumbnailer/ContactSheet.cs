@@ -5,7 +5,6 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Linq;
 using System.Text.Json;
 using System.Globalization;
 using System.Threading.Tasks;
@@ -82,24 +81,52 @@ namespace libthumbnailer
 
         private double GetDuration(JsonElement root)
         {
-            return root.TryGetProperty("format", out var format) ? double.Parse(format.GetProperty("duration").GetString()) : -1;
+            try
+            {
+                return root.TryGetProperty("format", out var format) ? double.Parse(format.GetProperty("duration").GetString()) : -1;
+            }
+            catch
+            {
+                return -1;
+            }
         }
 
         private string GetFileInfo(JsonElement root)
         {
-            return root.TryGetProperty("format", out var format) ? Utils.GetFileInfo(format) : "Unknown file format";
+            try
+            {
+                return root.TryGetProperty("format", out var format) ? Utils.GetFileInfo(format) : "Unknown file format";
+            }
+            catch
+            {
+                return "Unknown file format";
+            }
         }
 
         private string GetVideoInfo(JsonElement root)
         {
-            return TryGetIndex(root.GetProperty("streams"), "video", out int vindex) ?
-                   Utils.GetVideoInfo(root.GetProperty("streams")[vindex]) : "Unknown video";
+            try
+            {
+                return TryGetIndex(root.GetProperty("streams"), "video", out int vindex) ?
+                       Utils.GetVideoInfo(root.GetProperty("streams")[vindex]) : "Unknown video";
+            }
+            catch
+            {
+                return "Unknown video";
+            }
         }
 
         private string GetAudioInfo(JsonElement root)
         {
-            return TryGetIndex(root.GetProperty("streams"), "audio", out int aindex) ?
-                   Utils.GetAudioInfo(root.GetProperty("streams")[aindex]) : "Unknown audio";
+            try
+            {
+                return TryGetIndex(root.GetProperty("streams"), "audio", out int aindex) ?
+                       Utils.GetAudioInfo(root.GetProperty("streams")[aindex]) : "Unknown audio";
+            }
+            catch
+            {
+                return "Unknown audio";
+            }
         }
 
         private void TryCalculateRatio(JsonElement root)
@@ -326,7 +353,15 @@ namespace libthumbnailer
 
                 var t = new Task<bool>(() =>
                 {
-                    return cs.PrintSheet(filePath, config);
+                    try
+                    {
+                        return cs.PrintSheet(filePath, config);
+                    }
+                    catch(Exception e)
+                    {
+                        logger.LogError($"EXCEPTION: {filePath}: {e.Message}");
+                        return false;
+                    }
                 });
                 results[i] = t;
                 t.Start();

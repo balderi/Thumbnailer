@@ -4,7 +4,6 @@ using System.Drawing;
 using System.Drawing.Text;
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using Thumbnailer.Properties;
 using libthumbnailer;
@@ -27,6 +26,9 @@ namespace Thumbnailer
             _currentConfig = Config.Load(Settings.Default.PreviousConfigPath);
             logger = new Logger();
             InitializeComponent();
+#if DEBUG
+            CheckForIllegalCrossThreadCalls = false;
+#endif
             IsFullscreen = false;
             PopulateFonts();
             ApplyConfig();
