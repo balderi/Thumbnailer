@@ -45,7 +45,7 @@ namespace libthumbnailer
             foreach (string f in Directory.GetFiles(path))
             {
                 FileInfo fi = new FileInfo(f);
-                if (exts.Contains(fi.Extension))
+                if (exts.Contains(fi.Extension.ToLower()))
                 {
                     retval.Add(f);
                     FileLoadedEvent?.Invoke(new FileLoadedEventArgs(f));

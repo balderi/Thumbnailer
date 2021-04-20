@@ -373,5 +373,42 @@ namespace libthumbnailer
             AllSheetsPrinted?.Invoke(null, "All done!");
             logger.LogInfo($"*** Done in {DateTime.Now.Subtract(start).TotalSeconds} seconds ***");
         }
+
+        public static async Task PrintSheetsParallel(List<ContactSheet> sheets, Config config, Logger logger, string outputPath = null)
+        {
+            var start = DateTime.Now;
+            List<bool> results = new List<bool>();
+
+            Parallel.ForEach(sheets, cs =>
+            {
+                string filePath;
+                cs.Rows = Config.CurrentConfig.Rows;
+                cs.Columns = Config.CurrentConfig.Columns;
+                cs.Width = Config.CurrentConfig.Width;
+                cs.Gap = Config.CurrentConfig.Gap;
+
+                if (string.IsNullOrEmpty(outputPath))
+                {
+                    filePath = cs.FilePath;
+                }
+                else
+                {
+                    filePath = outputPath + "/" + new FileInfo(cs.FilePath).Name;
+                }
+
+                try
+                {
+                    results.Add(cs.PrintSheet(filePath, config));
+                }
+                catch (Exception e)
+                {
+                    logger.LogError($"Exceprion caught while printing sheet: {filePath}: {e.Message}");
+                    results.Add(false);
+                }
+            });
+
+            AllSheetsPrinted?.Invoke(null, "All done!");
+            logger.LogInfo($"*** Done in {DateTime.Now.Subtract(start).TotalSeconds} seconds ***");
+        }
     }
 }

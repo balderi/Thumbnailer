@@ -66,7 +66,7 @@ namespace ThumbnailerCLI
             ContactSheet.AllSheetsPrinted += AllSheetsPrinted;
             logger.LogInfo($"Printing {count} files...");
             PrintMsg($"Printing {count} files...\n");
-            _ = ContactSheet.PrintSheets(sheets, config, logger);
+            _ = ContactSheet.PrintSheetsParallel(sheets, config, logger);
 
             //Wait forever until the AllSheetsPrinted event is fired
             await Task.Delay(-1);
