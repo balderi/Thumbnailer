@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Rows>4</Rows>
+  <Columns>4</Columns>
+  <Width>1024</Width>
+  <Gap>1</Gap>
+  <BackgroundColor>-16777216</BackgroundColor>
+  <InfoColor>-1</InfoColor>
+  <TimeColor>-1</TimeColor>
+  <ShadowColor>-16777216</ShadowColor>
+  <InfoFont>Arial</InfoFont>
+  <TimeFont>Arial</TimeFont>
+  <InfoFontSize>12</InfoFontSize>
+  <TimeFontSize>10</TimeFontSize>
+  <PrintInfo>true</PrintInfo>
+  <PrintTime>true</PrintTime>
+</Config>

@@ -9,4 +9,10 @@
     <ProjectReference Include="..\libthumbnailer\libthumbnailer.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="default.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
