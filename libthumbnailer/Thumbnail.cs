@@ -16,12 +16,6 @@ namespace libthumbnailer
             Image = Image.FromFile(Path);
         }
 
-        public Thumbnail(Bitmap bitmap, double timeCode)
-        {
-            Image = bitmap;
-            TimeCode = timeCode;
-        }
-
         public void Dispose()
         {
             Image.Dispose();
