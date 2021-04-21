@@ -19,22 +19,22 @@ namespace libthumbnailer
 
         public void Log(string message)
         {
-            sw.WriteLine(message);
+            sw.WriteLine($"[{DateTime.Now}] {message}");
         }
 
         public void LogError(string message)
         {
-            Log($"[{DateTime.Now}] ERROR: {message}");
+            Log($"ERROR: {message}");
         }
 
         public void LogWarning(string message)
         {
-            Log($"[{DateTime.Now}] WARNING: {message}");
+            Log($"WARNING: {message}");
         }
 
         public void LogInfo(string message)
         {
-            Log($"[{DateTime.Now}] INFO: {message}");
+            Log($"INFO: {message}");
         }
 
         public void Close()
