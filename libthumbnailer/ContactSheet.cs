@@ -26,7 +26,7 @@ namespace libthumbnailer
         public List<Thumbnail> Thumbnails { get; }
 
         private readonly Logger _logger;
-        private int _aspectRatio = 1;
+        private readonly int _aspectRatio = 1;
         private string _thumbDir;
 
         public static event EventHandler<string> SheetCreated;
@@ -130,21 +130,21 @@ namespace libthumbnailer
             }
         }
 
-        private void TryCalculateRatio(JsonElement root)
-        {
-            // If the file has some weird aspect ratio - like 2:1 - the thumbnails will be distorted
-            // So we check for it and adjust accordingly elsewhere - otherwise the ratio is initialized as 1
-            if (TryGetIndex(root.GetProperty("streams"), "video", out int vindex) && vindex > 0)
-            {
-                if (root.GetProperty("streams")[vindex].TryGetProperty("sample_aspect_ratio", out var aspect))
-                {
-                    int w = int.Parse(aspect.GetString().Split(':')[0]);
-                    int h = int.Parse(aspect.GetString().Split(':')[1]);
-                    if (w > h)
-                        _aspectRatio = w / h;
-                }
-            }
-        }
+        //private void TryCalculateRatio(JsonElement root)
+        //{
+        //    // If the file has some weird aspect ratio - like 2:1 - the thumbnails will be distorted
+        //    // So we check for it and adjust accordingly elsewhere - otherwise the ratio is initialized as 1
+        //    if (TryGetIndex(root.GetProperty("streams"), "video", out int vindex) && vindex > 0)
+        //    {
+        //        if (root.GetProperty("streams")[vindex].TryGetProperty("sample_aspect_ratio", out var aspect))
+        //        {
+        //            int w = int.Parse(aspect.GetString().Split(':')[0]);
+        //            int h = int.Parse(aspect.GetString().Split(':')[1]);
+        //            if (w > h)
+        //                _aspectRatio = w / h;
+        //        }
+        //    }
+        //}
 
         private bool TryGetIndex(JsonElement streams, string streamName, out int index)
         {
@@ -211,8 +211,14 @@ namespace libthumbnailer
                             Environment.NewLine + VideoInfo;
         }
 
-        public bool PrintSheet(string filename, Config config)
+        public bool PrintSheet(string filename, Config config, bool overwrite)
         {
+            if (!overwrite && File.Exists(filename + ".png"))
+            {
+                _logger.LogInfo($"SKIP: {filename} already exists - skipping");
+                return true;
+            }
+
             GenerateThumbnails();
 
             int imgWidth = (Width - ((Columns - 1) * Gap) - 4) / Columns;
@@ -347,7 +353,7 @@ namespace libthumbnailer
             return retval;
         }
 
-        public static async Task PrintSheets(List<ContactSheet> sheets, Config config, Logger logger, string outputPath = null)
+        public static async Task PrintSheets(List<ContactSheet> sheets, Config config, Logger logger, string outputPath = null, bool overwrite = true)
         {
             var start = DateTime.Now;
             var results = new Task<bool>[sheets.Count];
@@ -374,7 +380,7 @@ namespace libthumbnailer
                 {
                     try
                     {
-                        return cs.PrintSheet(filePath, config);
+                        return cs.PrintSheet(filePath, config, overwrite);
                     }
                     catch(Exception e)
                     {
@@ -393,7 +399,7 @@ namespace libthumbnailer
             logger.LogInfo($"*** Done in {DateTime.Now.Subtract(start).TotalSeconds} seconds ***");
         }
 
-        public static void PrintSheetsParallel(List<ContactSheet> sheets, Config config, Logger logger, string outputPath = null)
+        public static void PrintSheetsParallel(List<ContactSheet> sheets, Config config, Logger logger, string outputPath = null, bool overwrite = true)
         {
             var start = DateTime.Now;
             List<bool> results = new List<bool>();
@@ -417,7 +423,7 @@ namespace libthumbnailer
 
                 try
                 {
-                    results.Add(cs.PrintSheet(filePath, config));
+                    results.Add(cs.PrintSheet(filePath, config, overwrite));
                 }
                 catch (Exception e)
                 {
