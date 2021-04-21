@@ -27,6 +27,7 @@ namespace libthumbnailer
 
         private readonly Logger _logger;
         private int _aspectRatio = 1;
+        private string _thumbDir;
 
         public static event EventHandler<string> SheetCreated;
         public event EventHandler<string> SheetPrinted;
@@ -169,15 +170,15 @@ namespace libthumbnailer
         {
             double tween = Duration / (Rows * Columns);
 
-            string dir = "temp/temp_" + (FilePath.GetHashCode() + DateTime.Now.Millisecond);
-            Directory.CreateDirectory(dir);
+            _thumbDir = "temp/temp_" + (FilePath.GetHashCode() + DateTime.Now.Millisecond);
+            Directory.CreateDirectory(_thumbDir);
 
             var proc = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "ffmpeg",
-                    Arguments = $"-i \"{FilePath}\" -vf fps=1/{tween} {dir}/img%05d.png",
+                    Arguments = $"-i \"{FilePath}\" -vf fps=1/{tween} {_thumbDir}/img%05d.png",
                     UseShellExecute = false,
                     CreateNoWindow = true
                 }
@@ -196,7 +197,7 @@ namespace libthumbnailer
             }
 
             int count = 0;
-            foreach (string s in Directory.GetFiles(dir))
+            foreach (string s in Directory.GetFiles(_thumbDir))
             {
                 Thumbnails.Add(ThumbnailFactory.CreateThumbnail(s, ++count * tween));
             }
@@ -300,8 +301,26 @@ namespace libthumbnailer
 
                 foreach (var t in Thumbnails)
                 {
-                    t.Dispose();
+                    try
+                    {
+                        _logger.LogInfo($"Trying to clean up file {t.Path}");
+                        File.Delete(t.Path);
+                    }
+                    catch 
+                    {
+                        _logger.LogError($"Failed cleaning up file {t.Path}");
+                    }
+                    finally
+                    {
+                        t.Dispose();
+                    }
                 }
+                try
+                {
+                    _logger.LogInfo($"Trying to clean up directory {_thumbDir}");
+                    Directory.Delete(_thumbDir);
+                }
+                catch { }
             }
             SheetPrinted?.Invoke(this, FilePath);
             return true;
@@ -374,7 +393,7 @@ namespace libthumbnailer
             logger.LogInfo($"*** Done in {DateTime.Now.Subtract(start).TotalSeconds} seconds ***");
         }
 
-        public static async Task PrintSheetsParallel(List<ContactSheet> sheets, Config config, Logger logger, string outputPath = null)
+        public static void PrintSheetsParallel(List<ContactSheet> sheets, Config config, Logger logger, string outputPath = null)
         {
             var start = DateTime.Now;
             List<bool> results = new List<bool>();
