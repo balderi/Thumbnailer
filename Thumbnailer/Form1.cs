@@ -164,7 +164,7 @@ namespace Thumbnailer
                 sheets.ForEach(x => x.SheetPrinted += SheetPrinted);
                 ContactSheet.AllSheetsPrinted += AllSheetsPrinted;
                 logger.LogInfo($"Converting {count} files...");
-                _ = ContactSheet.PrintSheets(sheets, _currentConfig, logger, tbOutput.Text);
+                ContactSheet.PrintSheetsParallel(sheets, _currentConfig, logger, tbOutput.Text);
             }
             else
             {
@@ -427,129 +427,16 @@ namespace Thumbnailer
             Refresh();
         }
 
-        private void x1ToolStripMenuItem_Click(object sender, EventArgs e)
+        private Tuple<int, int> ParseLayoutTag(ToolStripMenuItem item)
         {
-            SetDimensions(1, 1);
+            var vals = item.Tag.ToString().Split('x');
+            return new Tuple<int, int>(int.Parse(vals[0]), int.Parse(vals[1]));
         }
 
-        private void x2ToolStripMenuItem_Click(object sender, EventArgs e)
+        private void LayoutToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            SetDimensions(1, 2);
-        }
-
-        private void x3ToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            SetDimensions(1, 3);
-        }
-
-        private void x4ToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            SetDimensions(1, 4);
-        }
-
-        private void x5ToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            SetDimensions(1, 5);
-        }
-
-        private void x1ToolStripMenuItem1_Click(object sender, EventArgs e)
-        {
-            SetDimensions(2, 1);
-        }
-
-        private void x2ToolStripMenuItem1_Click(object sender, EventArgs e)
-        {
-            SetDimensions(2, 2);
-        }
-
-        private void x3ToolStripMenuItem1_Click(object sender, EventArgs e)
-        {
-            SetDimensions(2, 3);
-        }
-
-        private void x4ToolStripMenuItem1_Click(object sender, EventArgs e)
-        {
-            SetDimensions(2, 4);
-        }
-
-        private void x5ToolStripMenuItem1_Click(object sender, EventArgs e)
-        {
-            SetDimensions(2, 5);
-        }
-
-        private void x1ToolStripMenuItem2_Click(object sender, EventArgs e)
-        {
-            SetDimensions(3, 1);
-        }
-
-        private void x2ToolStripMenuItem2_Click(object sender, EventArgs e)
-        {
-            SetDimensions(3, 2);
-        }
-
-        private void x3ToolStripMenuItem2_Click(object sender, EventArgs e)
-        {
-            SetDimensions(3, 3);
-        }
-
-        private void x4ToolStripMenuItem2_Click(object sender, EventArgs e)
-        {
-            SetDimensions(3, 4);
-        }
-
-        private void x5ToolStripMenuItem2_Click(object sender, EventArgs e)
-        {
-            SetDimensions(3, 5);
-        }
-
-        private void x1ToolStripMenuItem3_Click(object sender, EventArgs e)
-        {
-            SetDimensions(4, 1);
-        }
-
-        private void x2ToolStripMenuItem3_Click(object sender, EventArgs e)
-        {
-            SetDimensions(4, 2);
-        }
-
-        private void x3ToolStripMenuItem3_Click(object sender, EventArgs e)
-        {
-            SetDimensions(4, 3);
-        }
-
-        private void x4ToolStripMenuItem3_Click(object sender, EventArgs e)
-        {
-            SetDimensions(4, 4);
-        }
-
-        private void x5ToolStripMenuItem3_Click(object sender, EventArgs e)
-        {
-            SetDimensions(4, 5);
-        }
-
-        private void x1ToolStripMenuItem4_Click(object sender, EventArgs e)
-        {
-            SetDimensions(5, 1);
-        }
-
-        private void x2ToolStripMenuItem4_Click(object sender, EventArgs e)
-        {
-            SetDimensions(5, 2);
-        }
-
-        private void x3ToolStripMenuItem4_Click(object sender, EventArgs e)
-        {
-            SetDimensions(5, 3);
-        }
-
-        private void x4ToolStripMenuItem4_Click(object sender, EventArgs e)
-        {
-            SetDimensions(5, 4);
-        }
-
-        private void x5ToolStripMenuItem4_Click(object sender, EventArgs e)
-        {
-            SetDimensions(5, 5);
+            var dims = ParseLayoutTag(sender as ToolStripMenuItem);
+            SetDimensions(dims.Item1, dims.Item2);
         }
 
         private void btnInfoColorSelect_Paint(object sender, PaintEventArgs e)
