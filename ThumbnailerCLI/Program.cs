@@ -64,8 +64,8 @@ namespace ThumbnailerCLI
             curFile = 0;
 
             ContactSheet.AllSheetsPrinted += AllSheetsPrinted;
-            logger.LogInfo($"Printing {count} files...");
-            PrintMsg($"Printing {count} files...\n");
+            logger.LogInfo($"Printing {count} sheets...");
+            PrintMsg($"Printing {count} sheets...\n");
             ContactSheet.PrintSheetsParallel(sheets, config, logger, overwrite: overwrite);
 
             //Wait forever until the AllSheetsPrinted event is fired
@@ -101,7 +101,6 @@ namespace ThumbnailerCLI
                     catch (Exception ex)
                     {
                         logger.LogWarning($"Failed to delete file {f}: {ex.Message}");
-                        PrintMsg($"Failed to delete file {f}: {ex.Message}");
                     }
                 }
                 try
@@ -111,7 +110,6 @@ namespace ThumbnailerCLI
                 catch (Exception ex)
                 {
                     logger.LogWarning($"Failed to delete directory {d}: {ex.Message}");
-                    PrintMsg($"Failed to delete directory {d}: {ex.Message}");
                 }
             }
             logger.LogInfo($"Clean-up done!");

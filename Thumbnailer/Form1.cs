@@ -164,7 +164,7 @@ namespace Thumbnailer
                 sheets.ForEach(x => x.SheetPrinted += SheetPrinted);
                 ContactSheet.AllSheetsPrinted += AllSheetsPrinted;
                 logger.LogInfo($"Converting {count} files...");
-                ContactSheet.PrintSheetsParallel(sheets, _currentConfig, logger, tbOutput.Text);
+                ContactSheet.PrintSheetsParallel(sheets, _currentConfig, logger, true, tbOutput.Text); //TODO: Replace 'true' with overwrite option
             }
             else
             {

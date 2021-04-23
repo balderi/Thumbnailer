@@ -307,26 +307,24 @@ namespace libthumbnailer
 
                 foreach (var t in Thumbnails)
                 {
+                    t.Dispose();
                     try
                     {
-                        _logger.LogInfo($"Trying to clean up file {t.Path}");
                         File.Delete(t.Path);
                     }
-                    catch 
+                    catch (Exception ex)
                     {
-                        _logger.LogError($"Failed cleaning up file {t.Path}");
-                    }
-                    finally
-                    {
-                        t.Dispose();
+                        _logger.LogWarning($"Failed to delete file {t.Path}: {ex.Message}");
                     }
                 }
                 try
                 {
-                    _logger.LogInfo($"Trying to clean up directory {_thumbDir}");
                     Directory.Delete(_thumbDir);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"Failed to delete directory {_thumbDir}: {ex.Message}");
+                }
             }
             SheetPrinted?.Invoke(this, FilePath);
             return true;
@@ -353,11 +351,10 @@ namespace libthumbnailer
             return retval;
         }
 
-        public static async Task PrintSheets(List<ContactSheet> sheets, Config config, Logger logger, string outputPath = null, bool overwrite = true)
+        public static void PrintSheets(List<ContactSheet> sheets, Config config, Logger logger, bool overwrite, string outputPath = null)
         {
             var start = DateTime.Now;
-            var results = new Task<bool>[sheets.Count];
-            int i = 0;
+            var results = new List<bool>();
 
             foreach (ContactSheet cs in sheets)
             {
@@ -376,30 +373,22 @@ namespace libthumbnailer
                     filePath = outputPath + "/" + new FileInfo(cs.FilePath).Name;
                 }
 
-                var t = new Task<bool>(() =>
+                try
                 {
-                    try
-                    {
-                        return cs.PrintSheet(filePath, config, overwrite);
-                    }
-                    catch(Exception e)
-                    {
-                        logger.LogError($"Exceprion caught while printing sheet: {filePath}: {e.Message}");
-                        return false;
-                    }
-                });
-                results[i] = t;
-                t.Start();
-                i++;
+                    results.Add(cs.PrintSheet(filePath, config, overwrite));
+                }
+                catch(Exception e)
+                {
+                    logger.LogError($"Exceprion caught while printing sheet: {filePath}: {e.Message}");
+                    results.Add(false);
+                }
             }
-
-            await Task.WhenAll(results);
 
             AllSheetsPrinted?.Invoke(null, "All done!");
             logger.LogInfo($"*** Done in {DateTime.Now.Subtract(start).TotalSeconds} seconds ***");
         }
 
-        public static void PrintSheetsParallel(List<ContactSheet> sheets, Config config, Logger logger, string outputPath = null, bool overwrite = true)
+        public static void PrintSheetsParallel(List<ContactSheet> sheets, Config config, Logger logger, bool overwrite, string outputPath = null)
         {
             var start = DateTime.Now;
             List<bool> results = new List<bool>();
