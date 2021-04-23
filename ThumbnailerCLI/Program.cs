@@ -19,7 +19,7 @@ namespace ThumbnailerCLI
         {
             if(args.Length < 1)
             {
-                Console.WriteLine("usage: ThumbnailerCLI [options] <source file/folder> [config]");
+                Console.WriteLine("Too few arguments. Use -h or --help for help.");
                 return;
             }
 
@@ -30,7 +30,15 @@ namespace ThumbnailerCLI
             {
                 if(arg[0] == '-')
                 {
-                    ParseFlag(arg);
+                    try
+                    {
+                        ParseFlag(arg);
+                    }
+                    catch(Exception e)
+                    {
+                        Console.WriteLine(e.Message);
+                        Environment.Exit(1);
+                    }
                 }
                 else if(sourcePath is null)
                 {
@@ -120,26 +128,71 @@ namespace ThumbnailerCLI
 
         static void ParseFlag(string flag)
         {
-            switch(flag)
+            if(flag[1] == '-')
             {
-                case "--overwrite":
-                case "-w":
+                switch (flag)
+                {
+                    case "--overwrite":
+                        {
+                            overwrite = true;
+                            break;
+                        }
+                    case "--recursive":
+                        {
+                            recurse = true;
+                            break;
+                        }
+                    case "--verbose":
+                        {
+                            verbose = true;
+                            break;
+                        }
+                    case "--help":
+                        {
+                            Console.WriteLine("usage: ThumbnailerCLI [options] <source file/folder> [config]");
+                            Environment.Exit(0);
+                            break;
+                        }
+                    default:
+                        {
+                            throw new ArgumentException($"Invalid option '{flag[2..]}'.");
+                        }
+                }
+            }
+            else
+            {
+                var substr = flag[1..];
+                foreach (var f in substr)
+                {
+                    switch (f)
                     {
-                        overwrite = true;
-                        break;
+                        case 'o':
+                            {
+                                overwrite = true;
+                                break;
+                            }
+                        case 'r':
+                            {
+                                recurse = true;
+                                break;
+                            }
+                        case 'v':
+                            {
+                                verbose = true;
+                                break;
+                            }
+                        case 'h':
+                            {
+                                Console.WriteLine("usage: ThumbnailerCLI [options] <source file/folder> [config]");
+                                Environment.Exit(0);
+                                break;
+                            }
+                        default:
+                            {
+                                throw new ArgumentException($"Invalid option '{f}'.");
+                            }
                     }
-                case "--recursive":
-                case "-r":
-                    {
-                        recurse = true;
-                        break;
-                    }
-                case "--verbose":
-                case "-v":
-                    {
-                        verbose = true;
-                        break;
-                    }
+                }
             }
         }
 
