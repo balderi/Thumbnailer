@@ -310,29 +310,27 @@ namespace libthumbnailer
                     _logger.LogError($"Unable to save file {filename}: {e.Message}");
                     return false;
                 }
+            }
 
-                bitmap.Dispose();
-
-                foreach (var t in Thumbnails)
-                {
-                    t.Dispose();
-                    try
-                    {
-                        File.Delete(t.Path);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning($"Failed to delete file {t.Path}: {ex.Message}");
-                    }
-                }
+            foreach (var t in Thumbnails)
+            {
+                t.Dispose();
                 try
                 {
-                    Directory.Delete(_thumbDir);
+                    File.Delete(t.Path);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning($"Failed to delete directory {_thumbDir}: {ex.Message}");
+                    _logger.LogWarning($"Failed to delete file {t.Path}: {ex.Message}");
                 }
+            }
+            try
+            {
+                Directory.Delete(_thumbDir);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"Failed to delete directory {_thumbDir}: {ex.Message}");
             }
 
             SheetPrinted?.Invoke(this, FilePath);
