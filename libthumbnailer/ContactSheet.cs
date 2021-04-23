@@ -166,6 +166,7 @@ namespace libthumbnailer
             return false;
         }
 
+        //Generates thumbnails by running ffmpeg on the file, and saving them in a temp folder.
         private void GenerateThumbnails()
         {
             double tween = Duration / (Rows * Columns);
@@ -211,6 +212,13 @@ namespace libthumbnailer
                             Environment.NewLine + VideoInfo;
         }
 
+        /// <summary>
+        /// Prints the contact sheet to the file specified in <paramref name="filename"/>.
+        /// </summary>
+        /// <param name="filename">The file name of the contact sheet</param>
+        /// <param name="config">The configuration to use when printing.</param>
+        /// <param name="overwrite">Whether or not to overwrite an existing file.</param>
+        /// <returns>True if no errors occur; otherwise false.</returns>
         public bool PrintSheet(string filename, Config config, bool overwrite)
         {
             if (!overwrite && File.Exists(filename + ".png"))
@@ -326,11 +334,12 @@ namespace libthumbnailer
                     _logger.LogWarning($"Failed to delete directory {_thumbDir}: {ex.Message}");
                 }
             }
+
             SheetPrinted?.Invoke(this, FilePath);
             return true;
         }
 
-        public static List<ContactSheet> BuildSheets(string[] files, Logger logger)
+        public static List<ContactSheet> BuildSheets(IEnumerable<string> files, Logger logger)
         {
             var retval = new List<ContactSheet>();
 
@@ -351,6 +360,15 @@ namespace libthumbnailer
             return retval;
         }
 
+        /// <summary>
+        /// Prints a list of contact sheets to file(s).
+        /// </summary>
+        /// <param name="sheets">The list of contact sheets to print.</param>
+        /// <param name="config">The configuration to use when printing.</param>
+        /// <param name="logger">The <see cref="Logger"/> instance to use for logging.</param>
+        /// <param name="overwrite">Whether or not to overwrite existing files.</param>
+        /// <param name="outputPath">The path to print files to, if it is different from the source path.</param>
+        /// <remarks>Prints the contact sheets sequentially.</remarks>
         public static void PrintSheets(List<ContactSheet> sheets, Config config, Logger logger, bool overwrite, string outputPath = null)
         {
             var start = DateTime.Now;
@@ -388,6 +406,15 @@ namespace libthumbnailer
             logger.LogInfo($"*** Done in {DateTime.Now.Subtract(start).TotalSeconds} seconds ***");
         }
 
+        /// <summary>
+        /// Prints a list of contact sheets to file(s).
+        /// </summary>
+        /// <param name="sheets">The list of contact sheets to print.</param>
+        /// <param name="config">The configuration to use when printing.</param>
+        /// <param name="logger">The <see cref="Logger"/> instance to use for logging.</param>
+        /// <param name="overwrite">Whether or not to overwrite existing files.</param>
+        /// <param name="outputPath">The path to print files to, if it is different from the source path.</param>
+        /// <remarks>Prints the contact sheets parallellized (multi-threaded).</remarks>
         public static void PrintSheetsParallel(List<ContactSheet> sheets, Config config, Logger logger, bool overwrite, string outputPath = null)
         {
             var start = DateTime.Now;

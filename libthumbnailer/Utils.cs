@@ -7,12 +7,23 @@ namespace libthumbnailer
 {
     public class Utils
     {
+        /// <summary>
+        /// Calculates the framerate of the file.
+        /// </summary>
+        /// <param name="val">The <see cref="string"/> to parse.</param>
+        /// <returns>The framerate with two decimal places as <see cref="string"/>.</returns>
         public static string GetFps(string val)
         {
             var temp = val.Split('/');
             return (double.Parse(temp[0]) / double.Parse(temp[1])).ToString("N2");
         }
 
+        /// <summary>
+        /// Get the pixel width of a text string.
+        /// </summary>
+        /// <param name="text">The text string to measure.</param>
+        /// <param name="font">The font used to print the text.</param>
+        /// <returns>The width of the text string in pixels.</returns>
         public static int GetStringWidth(string text, Font font)
         {
             Graphics g = Graphics.FromImage(new Bitmap(1, 1));
@@ -20,6 +31,12 @@ namespace libthumbnailer
             return (int)Math.Round(size.Width);
         }
 
+        /// <summary>
+        /// Get the pixel height of a text string.
+        /// </summary>
+        /// <param name="text">The text string to measure.</param>
+        /// <param name="font">The font used to print the text.</param>
+        /// <returns>The height of the text string in pixels.</returns>
         public static int GetStringHeight(string text, Font font)
         {
             Graphics g = Graphics.FromImage(new Bitmap(1, 1));
@@ -27,6 +44,11 @@ namespace libthumbnailer
             return (int)Math.Round(size.Height);
         }
 
+        /// <summary>
+        /// Gets the basic info about the file from a <see cref="JsonElement"/>.
+        /// </summary>
+        /// <param name="format">The <see cref="JsonElement"/> to parse.</param>
+        /// <returns>A formatted <see cref="string"/> containing basic file info.</returns>
         public static string GetFileInfo(JsonElement format)
         {
             var size = format.TryGetProperty("size", out var Jsize) ? Jsize.GetString() : "N/A";
@@ -36,6 +58,11 @@ namespace libthumbnailer
             return $"Size: {size} bytes ({Converter.ToKiB(size)}B), duration: {Converter.ToHMS(double.Parse(duration))}, avg. bitrate: {Converter.ToKB(bitRate)}b/s";
         }
 
+        /// <summary>
+        /// Gets audio info about the file from a <see cref="JsonElement"/>.
+        /// </summary>
+        /// <param name="audioStream">The <see cref="JsonElement"/> to parse.</param>
+        /// <returns>A formatted <see cref="string"/> containing audio info.</returns>
         public static string GetAudioInfo(JsonElement audioStream)
         {
             var codecName = audioStream.TryGetProperty("codec_name", out var JcodecName) ? JcodecName.GetString() : "N/A";
@@ -46,6 +73,11 @@ namespace libthumbnailer
             return $"Audio: {codecName}, {sampleRate} Hz, {channels} channels, {Converter.ToKB(bitRate)}b/s";
         }
 
+        /// <summary>
+        /// Gets video info about the file from a <see cref="JsonElement"/>.
+        /// </summary>
+        /// <param name="audioStream">The <see cref="JsonElement"/> to parse.</param>
+        /// <returns>A formatted <see cref="string"/> containing video info.</returns>
         public static string GetVideoInfo(JsonElement videoStream)
         {
             var codecName = videoStream.TryGetProperty("codec_name", out var JcodecName) ? JcodecName.GetString() : "N/A";
@@ -57,6 +89,11 @@ namespace libthumbnailer
             return $"Video: {codecName}, {width}x{height}, {GetFps(frameRate)}, {Converter.ToKB(bitRate)}b/s";
         }
 
+        /// <summary>
+        /// Gets the specified <see cref="FontFamily"/>.
+        /// </summary>
+        /// <param name="name">Name of the font.</param>
+        /// <returns>The <see cref="FontFamily"/> if it is installed; otherwise the default value for <see cref="FontFamily"/>.</returns>
         public static FontFamily GetFontFamilyFromName(string name)
         {
             InstalledFontCollection fontCollection = new InstalledFontCollection();

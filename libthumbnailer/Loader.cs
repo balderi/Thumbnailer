@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System;
 
 namespace libthumbnailer
 {
@@ -18,21 +19,38 @@ namespace libthumbnailer
 
         public static event FileLoadedEventHandler FileLoadedEvent;
 
-        public static IEnumerable<string> LoadFiles(string path, bool recursive = true)
+        /// <summary>
+        /// Get one or more files in the specified path.
+        /// </summary>
+        /// <remarks>Can recurse though subfolders.</remarks>
+        /// <param name="path">The path to fetch files from.</param>
+        /// <param name="recursive">Whether or not to recurse through subfolders.</param>
+        /// <returns>A collection of one or more file paths.</returns>
+        /// <exception cref="ArgumentException"></exception>
+        public static IEnumerable<string> LoadFiles(string path, bool recursive = false)
         {
+            if(string.IsNullOrWhiteSpace(path))
+            {
+                throw new ArgumentException("Value cannot be empty or whitespace.", "path");
+            }
+
             List<string> retval = new List<string>();
 
             if(File.Exists(path)) // path to single file
             {
                 retval.Add(path);
             }
-            else // path to directory
+            else if(Directory.Exists(path)) // path to directory
             {
                 retval.AddRange(GetFiles(path));
-                if(recursive)
+                if (recursive)
                 {
                     retval.AddRange(GetDirs(path));
                 }
+            }
+            else // invalid path
+            {
+                throw new ArgumentException("The specified file or folder does not exist.", "path");
             }
 
             return retval;

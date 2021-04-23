@@ -2,8 +2,16 @@
 
 namespace libthumbnailer
 {
+    /// <summary>
+    /// Contains various methods for performing conversions.
+    /// </summary>
     public class Converter
     {
+        /// <summary>
+        /// Converts a byte value to KiB, MiB, or GiB.
+        /// </summary>
+        /// <param name="value">Byte value as <see cref="string"/>.</param>
+        /// <returns>Converted value, or 0 on parse error.</returns>
         public static string ToKiB(string value)
         {
             if (int.TryParse(value, out int result))
@@ -33,6 +41,11 @@ namespace libthumbnailer
             }
         }
 
+        /// <summary>
+        /// Converts a byte value to KB, MB, or GB.
+        /// </summary>
+        /// <param name="value">Byte value as <see cref="string"/>.</param>
+        /// <returns>Converted value, or 0 on parse error.</returns>
         public static string ToKB(string value)
         {
             if (int.TryParse(value, out int result))
@@ -62,6 +75,13 @@ namespace libthumbnailer
             }
         }
 
+        /// <summary>
+        /// Converts seconds into <c>HH:MM:SS</c> format.
+        /// </summary>
+        /// <param name="value">Seconds as <see cref="double"/>.</param>
+        /// <returns>A <see cref="string"/> in <c>HH:MM:SS</c> format.</returns>
+        /// <exception cref="OverflowException"></exception>
+        /// <exception cref="ArgumentException"></exception>
         public static string ToHMS(double value)
         {
             TimeSpan t = TimeSpan.FromSeconds(value);
