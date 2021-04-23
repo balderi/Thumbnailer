@@ -13,7 +13,7 @@ namespace libthumbnailer
 
     public class Loader
     {
-        static readonly string[] exts = new string[] { ".avi", ".mkv", ".wmv", ".mov", ".flv", ".divx", ".mp4", ".m4v", ".rm", ".mpg", ".mpeg", ".qt" };
+        static readonly string[] exts = new string[] { ".avi", ".mkv", ".wmv", ".mov", ".flv", ".divx", ".mp4", ".m4v", ".rm", ".mpg", ".mpeg", ".qt", ".webm" };
 
         public delegate void FileLoadedEventHandler(FileLoadedEventArgs e);
 
