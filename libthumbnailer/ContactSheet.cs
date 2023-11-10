@@ -8,6 +8,7 @@ using System.IO;
 using System.Text.Json;
 using System.Globalization;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace libthumbnailer
 {
@@ -46,10 +47,14 @@ namespace libthumbnailer
 
             Thumbnails = new List<Thumbnail>();
             Height = 0;
+
+            _logger.LogInfo($"--- Processing {filePath} ---");
         }
 
         private JsonElement GetRootInfo()
         {
+            _logger.LogInfo($"Getting ffprobe info...");
+
             var probe = new Process
             {
                 StartInfo = new ProcessStartInfo
@@ -77,6 +82,7 @@ namespace libthumbnailer
             }
 
             JsonDocument doc = JsonDocument.Parse(output);
+            _logger.LogInfo($"Got ffprobe info");
             return doc.RootElement;
         }
 
@@ -169,10 +175,15 @@ namespace libthumbnailer
         //Generates thumbnails by running ffmpeg on the file, and saving them in a temp folder.
         private void GenerateThumbnails()
         {
+            _logger.LogInfo($"Generating thumbnails...");
             double tween = Duration / (Rows * Columns);
 
             _thumbDir = "temp/temp_" + (FilePath.GetHashCode() + DateTime.Now.Millisecond);
             Directory.CreateDirectory(_thumbDir);
+
+            _logger.LogInfo($"Created temporary thumbnail folder {_thumbDir}");
+
+            _logger.LogInfo($"Running ffmpeg with arguments '-i \"{FilePath}\" -vf fps=1/{tween} {_thumbDir}/img%05d.png'...");
 
             var proc = new Process
             {
@@ -185,23 +196,31 @@ namespace libthumbnailer
                 }
             };
 
-            try
-            {
-                proc.Start();
-                proc.WaitForExit();
-                proc.Dispose();
-            }
-            catch
-            {
-                _logger.LogError($"ffmpeg failed to start.");
-                throw new FfmpegException();
-            }
+            //try
+            //{
+            proc.Start();
+            proc.WaitForExit();
+            _logger.LogInfo($"ffmpeg exited with code {proc.ExitCode} at {proc.ExitTime}");
+            proc.Dispose();
+            //}
+            //catch
+            //{
+            //    _logger.LogError($"ffmpeg failed to start.");
+            //    throw new FfmpegException();
+            //}
 
             int count = 0;
-            foreach (string s in Directory.GetFiles(_thumbDir))
+
+            var holder = Directory.GetFiles(_thumbDir);
+            // Sort the list of screenshots lexicographically, because linux reads files weird, apparently...
+            var sorted = from s in holder orderby s select s;
+
+            _logger.LogInfo($"Adding thumbnails...");
+            foreach (string s in sorted)
             {
                 Thumbnails.Add(ThumbnailFactory.CreateThumbnail(s, ++count * tween));
             }
+            _logger.LogInfo($"Thumbnails done");
         }
 
         private string PrintInfo()
@@ -221,6 +240,8 @@ namespace libthumbnailer
         /// <returns>True if no errors occur; otherwise false.</returns>
         public bool PrintSheet(string filename, Config config, bool overwrite)
         {
+            _logger.LogInfo($"Printing {filename}");
+
             if (!overwrite && File.Exists(filename + ".png"))
             {
                 _logger.LogInfo($"SKIP: {filename} already exists - skipping");
@@ -229,6 +250,9 @@ namespace libthumbnailer
 
             GenerateThumbnails();
 
+            _logger.LogInfo($"Generated {Thumbnails.Count} thumbnails");
+
+            _logger.LogInfo($"Defining dimensions and fonts...");
             int imgWidth = (Width - ((Columns - 1) * Gap) - 4) / Columns;
             double tw = Thumbnails[0].Image.Width;
             double th = Thumbnails[0].Image.Height;
@@ -248,9 +272,12 @@ namespace libthumbnailer
                 infoHeight = Utils.GetStringHeight(PrintInfo(), infoF);
                 Height += infoHeight;
             }
+            _logger.LogInfo($"Done!");
 
+            _logger.LogInfo($"Preparing bitmap...");
             using (var bitmap = new Bitmap(Width, Height))
             {
+                _logger.LogInfo($"Preparing canvas...");
                 using (var canvas = Graphics.FromImage(bitmap))
                 {
                     canvas.InterpolationMode = InterpolationMode.HighQualityBicubic;
@@ -285,10 +312,10 @@ namespace libthumbnailer
                                 catch (Exception e)
                                 {
                                     time = "?";
-                                    _logger.LogWarning($"({FilePath}): {e.Message}");
+                                    _logger.LogWarning($"TIMECODE ({FilePath}): {e.Message}");
                                 }
-                                int timeWidth = Utils.GetStringWidth(time, timeF);
-                                int timeHeight = Utils.GetStringHeight(time, timeF);
+                                int timeWidth = Utils.GetStringWidth(time, timeF, canvas);
+                                int timeHeight = Utils.GetStringHeight(time, timeF, canvas);
                                 canvas.DrawString(time, timeF, timeSB, new PointF(x + imgWidth - timeWidth + 1, y + imgHeight - timeHeight + 1));
                                 canvas.DrawString(time, timeF, timeB, new PointF(x + imgWidth - timeWidth, y + imgHeight - timeHeight));
                             }
@@ -301,8 +328,10 @@ namespace libthumbnailer
 
                     canvas.Save();
                 }
+                _logger.LogInfo($"Canvas done!");
                 try
                 {
+                    _logger.LogInfo($"Saving bitmap...");
                     bitmap.Save(filename + ".png", ImageFormat.Png);
                 }
                 catch (Exception e)
@@ -311,7 +340,9 @@ namespace libthumbnailer
                     return false;
                 }
             }
+            _logger.LogInfo($"Bitmap done!");
 
+            _logger.LogInfo($"Cleaning up...");
             foreach (var t in Thumbnails)
             {
                 t.Dispose();
@@ -332,6 +363,7 @@ namespace libthumbnailer
             {
                 _logger.LogWarning($"Failed to delete directory {_thumbDir}: {ex.Message}");
             }
+            _logger.LogInfo($"Cleanup done!");
 
             SheetPrinted?.Invoke(this, FilePath);
             return true;
@@ -395,7 +427,7 @@ namespace libthumbnailer
                 }
                 catch(Exception e)
                 {
-                    logger.LogError($"Exceprion caught while printing sheet: {filePath}: {e.Message}");
+                    logger.LogError($"Exception caught while printing sheet: {filePath}: {e.Message}\n{e.StackTrace}");
                     results.Add(false);
                 }
             }

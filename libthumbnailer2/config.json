@@ -1,0 +1,17 @@
+{
+  "Rows": 10,
+  "Columns": 4,
+  "Width": 1024,
+  "Gap": 1,
+  "BackgroundColor": -16777216,
+  "InfoFontColor": -1,
+  "TimeFontColor": -1,
+  "ShadowColor": -16777216,
+  "InfoFont": "Consolas",
+  "TimeFont": "Consolas",
+  "InfoFontSize": 10,
+  "TimeFontSize": 8,
+  "PrintInfo": true,
+  "PrintTime": true,
+  "ConfigPath": "config.json"
+}

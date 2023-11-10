@@ -32,6 +32,19 @@ namespace libthumbnailer
         }
 
         /// <summary>
+        /// Get the pixel width of a text string.
+        /// </summary>
+        /// <param name="text">The text string to measure.</param>
+        /// <param name="font">The font used to print the text.</param>
+        /// <param name="g">Graphics used to measure the string.</param>
+        /// <returns>The width of the text string in pixels.</returns>
+        public static int GetStringWidth(string text, Font font, Graphics g)
+        {
+            SizeF size = g.MeasureString(text, font);
+            return (int)Math.Round(size.Width);
+        }
+
+        /// <summary>
         /// Get the pixel height of a text string.
         /// </summary>
         /// <param name="text">The text string to measure.</param>
@@ -40,6 +53,19 @@ namespace libthumbnailer
         public static int GetStringHeight(string text, Font font)
         {
             Graphics g = Graphics.FromImage(new Bitmap(1, 1));
+            SizeF size = g.MeasureString(text, font);
+            return (int)Math.Round(size.Height);
+        }
+
+        /// <summary>
+        /// Get the pixel height of a text string.
+        /// </summary>
+        /// <param name="text">The text string to measure.</param>
+        /// <param name="font">The font used to print the text.</param>
+        /// <param name="g">Graphics used to measure the string.</param>
+        /// <returns>The height of the text string in pixels.</returns>
+        public static int GetStringHeight(string text, Font font, Graphics g)
+        {
             SizeF size = g.MeasureString(text, font);
             return (int)Math.Round(size.Height);
         }

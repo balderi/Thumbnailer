@@ -8,6 +8,7 @@ using System.Windows.Forms;
 using Thumbnailer.Properties;
 using libthumbnailer;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Thumbnailer
 {
@@ -145,22 +146,30 @@ namespace Thumbnailer
             int count = fileListBox.Items.Count;
             if (count > 0)
             {
+                DisableItems();
                 logger.LogInfo($"Building {count} sheets...");
                 tsProcessing.Text = "Starting image capture...";
-                foreach (var f in fileListBox.Items)
-                {
-                    sheets.Add(ContactSheetFactory.CreateContactSheet(f.ToString(), logger));
-                }
+                //var collectSheets = Task.Factory.StartNew(() =>
+                //{
+                //    List<ContactSheet> tempSheets = new List<ContactSheet>();
+                    tsTotalFiles.Text = fileListBox.Items.Count.ToString();
+                    tsPbar.Maximum = fileListBox.Items.Count;
+                    int c = 0;
+                    foreach (var f in fileListBox.Items)
+                    {
+                        sheets.Add(ContactSheetFactory.CreateContactSheet(f.ToString(), logger));
+                        tsCurrentFile.Text = $"{++c}";
+                        tsPbar.PerformStep();
+                    }
+                //    return tempSheets;
+                //});
 
                 tsProcessing.Text = "Processing...";
-                Refresh();
-
                 curFile = 0;
                 tsPbar.Value = 0;
                 tsPbar.Maximum = count;
                 tsCurrentFile.Text = curFile.ToString();
                 tsTotalFiles.Text = count.ToString();
-                DisableItems();
                 sheets.ForEach(x => x.SheetPrinted += SheetPrinted);
                 ContactSheet.AllSheetsPrinted += AllSheetsPrinted;
                 logger.LogInfo($"Converting {count} files...");

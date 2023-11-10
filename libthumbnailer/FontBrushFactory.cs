@@ -6,7 +6,18 @@ namespace libthumbnailer
     {
         public static Font CreateFont(FontFamily fontFamily, int fontSize)
         {
-            return new Font(fontFamily, fontSize);
+            if(fontSize <= 0)
+            {
+                fontSize = 12;
+            }
+            if(fontFamily == null)
+            {
+                var fc = new System.Drawing.Text.PrivateFontCollection();
+                fc.AddFontFile("consola.ttf");
+                fontFamily = new FontFamily("consolas");
+            }
+
+            return new Font(fontFamily, fontSize, FontStyle.Bold, GraphicsUnit.Point);
         }
     }
 
