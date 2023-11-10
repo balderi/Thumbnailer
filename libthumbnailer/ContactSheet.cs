@@ -8,6 +8,7 @@ using System.IO;
 using System.Text.Json;
 using System.Globalization;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace libthumbnailer
 {
@@ -46,6 +47,8 @@ namespace libthumbnailer
 
             Thumbnails = new List<Thumbnail>();
             Height = 0;
+
+            _logger.LogInfo($"--- Processing {filePath} ---");
         }
 
         private JsonElement GetRootInfo()
@@ -185,20 +188,25 @@ namespace libthumbnailer
                 }
             };
 
-            try
-            {
+            //try
+            //{
                 proc.Start();
                 proc.WaitForExit();
                 proc.Dispose();
-            }
-            catch
-            {
-                _logger.LogError($"ffmpeg failed to start.");
-                throw new FfmpegException();
-            }
+            //}
+            //catch
+            //{
+            //    _logger.LogError($"ffmpeg failed to start.");
+            //    throw new FfmpegException();
+            //}
 
             int count = 0;
-            foreach (string s in Directory.GetFiles(_thumbDir))
+
+            var holder = Directory.GetFiles(_thumbDir);
+            // Sort the list of screenshots lexicographically, because linux reads files weird, apparently...
+            var sorted = from s in holder orderby s select s;
+
+            foreach (string s in sorted)
             {
                 Thumbnails.Add(ThumbnailFactory.CreateThumbnail(s, ++count * tween));
             }
@@ -285,10 +293,10 @@ namespace libthumbnailer
                                 catch (Exception e)
                                 {
                                     time = "?";
-                                    _logger.LogWarning($"({FilePath}): {e.Message}");
+                                    _logger.LogWarning($"TIMECODE ({FilePath}): {e.Message}");
                                 }
-                                int timeWidth = Utils.GetStringWidth(time, timeF);
-                                int timeHeight = Utils.GetStringHeight(time, timeF);
+                                int timeWidth = Utils.GetStringWidth(time, timeF, canvas);
+                                int timeHeight = Utils.GetStringHeight(time, timeF, canvas);
                                 canvas.DrawString(time, timeF, timeSB, new PointF(x + imgWidth - timeWidth + 1, y + imgHeight - timeHeight + 1));
                                 canvas.DrawString(time, timeF, timeB, new PointF(x + imgWidth - timeWidth, y + imgHeight - timeHeight));
                             }
@@ -395,7 +403,7 @@ namespace libthumbnailer
                 }
                 catch(Exception e)
                 {
-                    logger.LogError($"Exceprion caught while printing sheet: {filePath}: {e.Message}");
+                    logger.LogError($"Exception caught while printing sheet: {filePath}: {e.Message}\n{e.StackTrace}");
                     results.Add(false);
                 }
             }

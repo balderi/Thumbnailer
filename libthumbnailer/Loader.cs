@@ -13,7 +13,7 @@ namespace libthumbnailer
 
     public class Loader
     {
-        static readonly string[] exts = new string[] { ".avi", ".mkv", ".wmv", ".mov", ".flv", ".divx", ".mp4", ".m4v", ".rm", ".mpg", ".mpeg", ".qt", ".webm" };
+        public static readonly string[] exts = new string[] { ".avi", ".mkv", ".wmv", ".mov", ".flv", ".divx", ".mp4", ".m4v", ".rm", ".mpg", ".mpeg", ".qt", ".webm" };
 
         public delegate void FileLoadedEventHandler(FileLoadedEventArgs e);
 
@@ -50,7 +50,7 @@ namespace libthumbnailer
             }
             else // invalid path
             {
-                throw new ArgumentException("The specified file or folder does not exist.", "path");
+                throw new ArgumentException($"The specified file or folder does not exist: '{path}'", "path");
             }
 
             return retval;
@@ -60,10 +60,10 @@ namespace libthumbnailer
         {
             List<string> retval = new List<string>();
 
-            foreach (string f in Directory.GetFiles(path))
+            foreach (string f in Directory.GetFiles(path, "*", SearchOption.TopDirectoryOnly))
             {
                 FileInfo fi = new FileInfo(f);
-                if (exts.Contains(fi.Extension.ToLower()))
+                if (exts.Contains(fi.Extension.ToLower()) && !retval.Contains(f))
                 {
                     retval.Add(f);
                     FileLoadedEvent?.Invoke(new FileLoadedEventArgs(f));
@@ -77,7 +77,7 @@ namespace libthumbnailer
         {
             List<string> retval = new List<string>();
 
-            foreach (string d in Directory.GetDirectories(path))
+            foreach (string d in Directory.GetDirectories(path, "*", SearchOption.TopDirectoryOnly))
             {
                 try
                 {
