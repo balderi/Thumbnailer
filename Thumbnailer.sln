@@ -7,11 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Thumbnailer", "Thumbnailer\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "libthumbnailer", "libthumbnailer\libthumbnailer.csproj", "{978DE940-B27B-4B7D-8DC5-45871E9E09F0}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ThumbnailerCLI", "ThumbnailerCLI\ThumbnailerCLI.csproj", "{6606F89F-95C0-407D-89F5-FF5092303F11}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "libthumbnailer2", "libthumbnailer2\libthumbnailer2.csproj", "{418840F7-E0DA-41D9-A206-A2393A4BEEC3}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Thumbnailer2", "Thumbnailer2\Thumbnailer2.csproj", "{548EAC40-F953-4905-810A-57817C35AD8A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThumbnailerCLI", "ThumbnailerCLI\ThumbnailerCLI.csproj", "{6606F89F-95C0-407D-89F5-FF5092303F11}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

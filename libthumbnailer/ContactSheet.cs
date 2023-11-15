@@ -210,13 +210,7 @@ namespace libthumbnailer
             //}
 
             int count = 0;
-
-            var holder = Directory.GetFiles(_thumbDir);
-            // Sort the list of screenshots lexicographically, because linux reads files weird, apparently...
-            var sorted = from s in holder orderby s select s;
-
-            _logger.LogInfo($"Adding thumbnails...");
-            foreach (string s in sorted)
+            foreach (string s in Directory.GetFiles(_thumbDir))
             {
                 Thumbnails.Add(ThumbnailFactory.CreateThumbnail(s, ++count * tween));
             }
