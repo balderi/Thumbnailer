@@ -136,22 +136,6 @@ namespace libthumbnailer
             }
         }
 
-        //private void TryCalculateRatio(JsonElement root)
-        //{
-        //    // If the file has some weird aspect ratio - like 2:1 - the thumbnails will be distorted
-        //    // So we check for it and adjust accordingly elsewhere - otherwise the ratio is initialized as 1
-        //    if (TryGetIndex(root.GetProperty("streams"), "video", out int vindex) && vindex > 0)
-        //    {
-        //        if (root.GetProperty("streams")[vindex].TryGetProperty("sample_aspect_ratio", out var aspect))
-        //        {
-        //            int w = int.Parse(aspect.GetString().Split(':')[0]);
-        //            int h = int.Parse(aspect.GetString().Split(':')[1]);
-        //            if (w > h)
-        //                _aspectRatio = w / h;
-        //        }
-        //    }
-        //}
-
         private bool TryGetIndex(JsonElement streams, string streamName, out int index)
         {
             int len = streams.GetArrayLength();
@@ -196,18 +180,10 @@ namespace libthumbnailer
                 }
             };
 
-            //try
-            //{
             proc.Start();
             proc.WaitForExit();
             _logger.LogInfo($"ffmpeg exited with code {proc.ExitCode} at {proc.ExitTime}");
             proc.Dispose();
-            //}
-            //catch
-            //{
-            //    _logger.LogError($"ffmpeg failed to start.");
-            //    throw new FfmpegException();
-            //}
 
             int count = 0;
 
