@@ -1,0 +1,17 @@
+{
+  "Rows": 10,
+  "Columns": 4,
+  "Width": 1024,
+  "Gap": 2,
+  "BackgroundColor": "000000FF",
+  "InfoFontColor": "FFFFFFFF",
+  "TimeFontColor": "FFFFFFFF",
+  "ShadowColor": "000000FF",
+  "InfoFont": "Consolas",
+  "TimeFont": "Consolas",
+  "InfoFontSize": 20,
+  "TimeFontSize": 16,
+  "PrintInfo": true,
+  "PrintTime": true,
+  "ConfigPath": "default.json"
+}

@@ -1,9 +1,4 @@
-﻿using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System;
-
-namespace libthumbnailer
+﻿namespace libthumbnailer
 {
     public class FileLoadedEventArgs
     {
@@ -13,11 +8,11 @@ namespace libthumbnailer
 
     public class Loader
     {
-        public static readonly string[] exts = new string[] { ".avi", ".mkv", ".wmv", ".mov", ".flv", ".divx", ".mp4", ".m4v", ".rm", ".mpg", ".mpeg", ".qt", ".webm" };
+        public static readonly string[] exts = [".avi", ".mkv", ".wmv", ".mov", ".flv", ".divx", ".mp4", ".m4v", ".rm", ".mpg", ".mpeg", ".qt", ".webm"];
 
         public delegate void FileLoadedEventHandler(FileLoadedEventArgs e);
 
-        public static event FileLoadedEventHandler FileLoadedEvent;
+        public static event FileLoadedEventHandler? FileLoadedEvent;
 
         /// <summary>
         /// Get one or more files in the specified path.
@@ -29,18 +24,18 @@ namespace libthumbnailer
         /// <exception cref="ArgumentException"></exception>
         public static IEnumerable<string> LoadFiles(string path, bool recursive = false)
         {
-            if(string.IsNullOrWhiteSpace(path))
+            if (string.IsNullOrWhiteSpace(path))
             {
-                throw new ArgumentException("Value cannot be empty or whitespace.", "path");
+                throw new ArgumentException("Value cannot be empty or whitespace.", nameof(path));
             }
 
-            List<string> retval = new List<string>();
+            List<string> retval = [];
 
-            if(File.Exists(path)) // path to single file
+            if (File.Exists(path)) // path to single file
             {
                 retval.Add(path);
             }
-            else if(Directory.Exists(path)) // path to directory
+            else if (Directory.Exists(path)) // path to directory
             {
                 retval.AddRange(GetFiles(path));
                 if (recursive)
@@ -50,19 +45,19 @@ namespace libthumbnailer
             }
             else // invalid path
             {
-                throw new ArgumentException($"The specified file or folder does not exist: '{path}'", "path");
+                throw new ArgumentException($"The specified file or folder does not exist: '{path}'", nameof(path));
             }
 
             return retval;
         }
 
-        static IEnumerable<string> GetFiles(string path)
+        static List<string> GetFiles(string path)
         {
-            List<string> retval = new List<string>();
+            List<string> retval = [];
 
             foreach (string f in Directory.GetFiles(path, "*", SearchOption.TopDirectoryOnly))
             {
-                FileInfo fi = new FileInfo(f);
+                FileInfo fi = new(f);
                 if (exts.Contains(fi.Extension.ToLower()) && !retval.Contains(f))
                 {
                     retval.Add(f);
@@ -73,9 +68,9 @@ namespace libthumbnailer
             return retval;
         }
 
-        static IEnumerable<string> GetDirs(string path)
+        static List<string> GetDirs(string path)
         {
-            List<string> retval = new List<string>();
+            List<string> retval = [];
 
             foreach (string d in Directory.GetDirectories(path, "*", SearchOption.TopDirectoryOnly))
             {

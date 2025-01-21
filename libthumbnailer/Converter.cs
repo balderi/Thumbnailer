@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace libthumbnailer
+﻿namespace libthumbnailer
 {
     /// <summary>
     /// Contains various methods for performing conversions.
@@ -84,8 +82,15 @@ namespace libthumbnailer
         /// <exception cref="ArgumentException"></exception>
         public static string ToHMS(double value)
         {
-            TimeSpan t = TimeSpan.FromSeconds(value);
-            return $"{t.Hours:D2}:{t.Minutes:D2}:{t.Seconds:D2}";
+            try
+            {
+                TimeSpan t = TimeSpan.FromSeconds(value);
+                return $"{t.Hours:D2}:{t.Minutes:D2}:{t.Seconds:D2}";
+            }
+            catch 
+            {
+                return "N/A";
+            }
         }
     }
 }

@@ -1,11 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
-using System.Text;
+﻿using System.Diagnostics;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace libthumbnailer
 {
@@ -15,7 +9,7 @@ namespace libthumbnailer
         {
             var retval = new Dictionary<string, string>();
 
-            JsonElement root = new JsonElement();
+            JsonElement root = new();
             try
             {
                 root = GetRootInfo(filePath);
@@ -31,10 +25,10 @@ namespace libthumbnailer
                 {
                     var videoStream = root.GetProperty("streams")[vindex];
 
-                    retval.Add("Width", videoStream.TryGetProperty("width", out var Jwidth) ? Jwidth.GetInt32().ToString() : "N/A");
-                    retval.Add("Height", videoStream.TryGetProperty("height", out var Jheight) ? Jheight.GetInt32().ToString() : "N/A");
-                    retval.Add("Codec", videoStream.TryGetProperty("codec_name", out var JcodecName) ? JcodecName.GetString() : "N/A");
-                    retval.Add("FrameRate", videoStream.TryGetProperty("avg_frame_rate", out var Jfps) ? Jfps.GetString() : "N/A");
+                    retval.Add("Width", videoStream.TryGetProperty("width", out var Jwidth) ? Jwidth.GetInt32().ToString()! : "N/A");
+                    retval.Add("Height", videoStream.TryGetProperty("height", out var Jheight) ? Jheight.GetInt32().ToString()! : "N/A");
+                    retval.Add("Codec", videoStream.TryGetProperty("codec_name", out var JcodecName) ? JcodecName.GetString()! : "N/A");
+                    retval.Add("FrameRate", videoStream.TryGetProperty("avg_frame_rate", out var Jfps) ? Jfps.GetString()! : "N/A");
                 }
             }
             catch { }
@@ -44,8 +38,8 @@ namespace libthumbnailer
                 {
                     var audioStream = root.GetProperty("streams")[aindex];
 
-                    retval.Add("AudioCodec", audioStream.TryGetProperty("codec_name", out var Jacodec) ? Jacodec.GetString() : "N/A");
-                    retval.Add("SampleRate", audioStream.TryGetProperty("sample_rate", out var Jrate) ? Jrate.GetString() : "N/A");
+                    retval.Add("AudioCodec", audioStream.TryGetProperty("codec_name", out var Jacodec) ? Jacodec.GetString()! : "N/A");
+                    retval.Add("SampleRate", audioStream.TryGetProperty("sample_rate", out var Jrate) ? Jrate.GetString()! : "N/A");
                 }
             }
             catch { }
@@ -53,10 +47,10 @@ namespace libthumbnailer
             {
                 if (root.TryGetProperty("format", out var format))
                 {
-                    retval.Add("Duration", format.TryGetProperty("duration", out var Jduration) ? Jduration.GetString() : "N/A");
-                    retval.Add("Size", format.TryGetProperty("size", out var Jsize) ? Jsize.GetString() : "N/A");
-                    retval.Add("Format", format.TryGetProperty("format_name", out var Jformat) ? Jformat.GetString() : "N/A");
-                    retval.Add("BitRate", format.TryGetProperty("bit_rate", out var Jbitrate) ? Jbitrate.GetString() : "N/A");
+                    retval.Add("Duration", format.TryGetProperty("duration", out var Jduration) ? Jduration.GetString()! : "N/A");
+                    retval.Add("Size", format.TryGetProperty("size", out var Jsize) ? Jsize.GetString()! : "N/A");
+                    retval.Add("Format", format.TryGetProperty("format_name", out var Jformat) ? Jformat.GetString()! : "N/A");
+                    retval.Add("BitRate", format.TryGetProperty("bit_rate", out var Jbitrate) ? Jbitrate.GetString()! : "N/A");
                 }
             }
             catch { }
@@ -79,17 +73,10 @@ namespace libthumbnailer
             };
 
             string output;
-            try
-            {
-                probe.Start();
-                output = probe.StandardOutput.ReadToEnd().Trim();
-                probe.WaitForExit();
-                probe.Dispose();
-            }
-            catch
-            {
-                throw new FfprobeException();
-            }
+            probe.Start();
+            output = probe.StandardOutput.ReadToEnd().Trim();
+            probe.WaitForExit();
+            probe.Dispose();
 
             JsonDocument doc = JsonDocument.Parse(output);
             return doc.RootElement;

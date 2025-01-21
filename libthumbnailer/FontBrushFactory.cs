@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using SixLabors.Fonts;
+using SixLabors.ImageSharp.Drawing.Processing;
 
 namespace libthumbnailer
 {
@@ -6,18 +7,12 @@ namespace libthumbnailer
     {
         public static Font CreateFont(FontFamily fontFamily, int fontSize)
         {
-            if(fontSize <= 0)
+            if (fontSize <= 0)
             {
                 fontSize = 12;
             }
-            if(fontFamily == null)
-            {
-                var fc = new System.Drawing.Text.PrivateFontCollection();
-                fc.AddFontFile("consola.ttf");
-                fontFamily = new FontFamily("consolas");
-            }
 
-            return new Font(fontFamily, fontSize, FontStyle.Bold, GraphicsUnit.Point);
+            return new Font(fontFamily, fontSize, FontStyle.Bold);
         }
     }
 

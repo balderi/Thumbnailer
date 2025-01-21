@@ -1,6 +1,4 @@
-﻿using System;
-using System.Drawing;
-using System.Drawing.Text;
+﻿using SixLabors.Fonts;
 using System.Text.Json;
 
 namespace libthumbnailer
@@ -26,22 +24,11 @@ namespace libthumbnailer
         /// <returns>The width of the text string in pixels.</returns>
         public static int GetStringWidth(string text, Font font)
         {
-            Graphics g = Graphics.FromImage(new Bitmap(1, 1));
-            SizeF size = g.MeasureString(text, font);
-            return (int)Math.Round(size.Width);
-        }
-
-        /// <summary>
-        /// Get the pixel width of a text string.
-        /// </summary>
-        /// <param name="text">The text string to measure.</param>
-        /// <param name="font">The font used to print the text.</param>
-        /// <param name="g">Graphics used to measure the string.</param>
-        /// <returns>The width of the text string in pixels.</returns>
-        public static int GetStringWidth(string text, Font font, Graphics g)
-        {
-            SizeF size = g.MeasureString(text, font);
-            return (int)Math.Round(size.Width);
+            //Graphics g = Graphics.FromImage(new Bitmap(1, 1));
+            //SizeF size = g.MeasureString(text, font);
+            //return (int)Math.Round(size.Width);
+            var bounds = TextMeasurer.MeasureBounds(text, new TextOptions(font));
+            return (int)Math.Round(bounds.Width);
         }
 
         /// <summary>
@@ -52,22 +39,11 @@ namespace libthumbnailer
         /// <returns>The height of the text string in pixels.</returns>
         public static int GetStringHeight(string text, Font font)
         {
-            Graphics g = Graphics.FromImage(new Bitmap(1, 1));
-            SizeF size = g.MeasureString(text, font);
-            return (int)Math.Round(size.Height);
-        }
-
-        /// <summary>
-        /// Get the pixel height of a text string.
-        /// </summary>
-        /// <param name="text">The text string to measure.</param>
-        /// <param name="font">The font used to print the text.</param>
-        /// <param name="g">Graphics used to measure the string.</param>
-        /// <returns>The height of the text string in pixels.</returns>
-        public static int GetStringHeight(string text, Font font, Graphics g)
-        {
-            SizeF size = g.MeasureString(text, font);
-            return (int)Math.Round(size.Height);
+            //Graphics g = Graphics.FromImage(new Bitmap(1, 1));
+            //SizeF size = g.MeasureString(text, font);
+            //return (int)Math.Round(size.Height);
+            var bounds = TextMeasurer.MeasureBounds(text, new TextOptions(font));
+            return (int)Math.Round(bounds.Height);
         }
 
         /// <summary>
@@ -81,7 +57,7 @@ namespace libthumbnailer
             var duration = format.TryGetProperty("duration", out var Jduration) ? Jduration.GetString() : "N/A";
             var bitRate = format.TryGetProperty("bit_rate", out var JbitRate) ? JbitRate.GetString() : "N/A";
 
-            return $"Size: {size} bytes ({Converter.ToKiB(size)}B), duration: {Converter.ToHMS(double.Parse(duration))}, avg. bitrate: {Converter.ToKB(bitRate)}b/s";
+            return $"Size: {size} bytes ({Converter.ToKiB(size!)}B), duration: {Converter.ToHMS(double.Parse(duration!))}, avg. bitrate: {Converter.ToKB(bitRate!)}b/s";
         }
 
         /// <summary>
@@ -96,7 +72,7 @@ namespace libthumbnailer
             var channels = audioStream.TryGetProperty("channels", out var Jchannels) ? Jchannels.GetInt32() : 0;
             var bitRate = audioStream.TryGetProperty("bit_rate", out var JbitRate) ? JbitRate.GetString() : "N/A";
 
-            return $"Audio: {codecName}, {sampleRate} Hz, {channels} channels, {Converter.ToKB(bitRate)}b/s";
+            return $"Audio: {codecName}, {sampleRate} Hz, {channels} channels, {Converter.ToKB(bitRate!)}b/s";
         }
 
         /// <summary>
@@ -112,7 +88,7 @@ namespace libthumbnailer
             var frameRate = videoStream.TryGetProperty("avg_frame_rate", out var JframeRate) ? JframeRate.GetString() : "N/A";
             var bitRate = videoStream.TryGetProperty("bit_rate", out var JbitRate) ? JbitRate.GetString() : "N/A";
 
-            return $"Video: {codecName}, {width}x{height}, {GetFps(frameRate)}, {Converter.ToKB(bitRate)}b/s";
+            return $"Video: {codecName}, {width}x{height}, {GetFps(frameRate!)}, {Converter.ToKB(bitRate!)}b/s";
         }
 
         /// <summary>
@@ -122,8 +98,14 @@ namespace libthumbnailer
         /// <returns>The <see cref="FontFamily"/> if it is installed; otherwise the default value for <see cref="FontFamily"/>.</returns>
         public static FontFamily GetFontFamilyFromName(string name)
         {
-            InstalledFontCollection fontCollection = new InstalledFontCollection();
-            return Array.Find(fontCollection.Families, x => x.Name == name);
+            //InstalledFontCollection fontCollection = new InstalledFontCollection();
+            //return Array.Find(fontCollection.Families, x => x.Name == name);
+            FontCollection fontCollection = new();
+            var systemFonts = fontCollection.AddSystemFonts();
+            systemFonts.Add("consola.ttf");
+            var family = systemFonts.Families.FirstOrDefault(x => x.Name == name);
+
+            return family;
         }
     }
 }

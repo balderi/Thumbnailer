@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Microsoft.Extensions.Configuration;
+using Serilog;
 
 namespace libthumbnailer
 {
@@ -6,25 +7,29 @@ namespace libthumbnailer
     {
         public static void PrintSingle(string path)
         {
-            Logger logger = new Logger();
-            List<ContactSheet> cs = new List<ContactSheet>()
-            {
-                ContactSheetFactory.CreateContactSheet(path, logger)
-            };
-            ContactSheet.PrintSheets(cs, Config.Load("default.xml"), logger, true);
-            logger.Close();
-        }
+            Config config;
 
-        public static void PrintMultiple(List<string> paths)
-        {
-            Logger logger = new Logger();
-            List<ContactSheet> cs = new List<ContactSheet>();
-            foreach (var p in paths)
+            var configuration = new ConfigurationBuilder()
+                .AddJsonFile("thumbsettings.json")
+                .Build();
+
+            Log.Logger = new LoggerConfiguration()
+                .ReadFrom.Configuration(configuration)
+                .CreateLogger();
+
+
+            if (Config.CurrentConfig is null)
             {
-                ContactSheetFactory.CreateContactSheet(p, logger);
+                config = Config.Load("default.json");
             }
-            ContactSheet.PrintSheetsParallel(cs, Config.Load("default.xml"), logger, true);
-            logger.Close();
+            else
+            {
+                config = Config.CurrentConfig;
+            }
+
+            var sheet = ContactSheetFactory.CreateContactSheet(path, config, Log.Logger);
+
+            sheet.PrintSheet(true);
         }
     }
 }

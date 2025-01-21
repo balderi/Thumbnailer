@@ -1,63 +1,54 @@
-﻿using System.IO;
+﻿using System.Runtime.CompilerServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using System.Xml.Serialization;
 
 namespace libthumbnailer
 {
     public class Config
     {
-        [XmlElement(ElementName = "Rows")]
         public int Rows { get; set; }
 
-        [XmlElement(ElementName = "Columns")]
         public int Columns { get; set; }
 
-        [XmlElement(ElementName = "Width")]
         public int Width { get; set; }
 
-        [XmlElement(ElementName = "Gap")]
         public int Gap { get; set; }
 
-        [XmlElement(ElementName = "BackgroundColor")]
-        public int BackgroundColor { get; set; }
+        public string BackgroundColor { get; set; } = string.Empty;
 
-        [XmlElement(ElementName = "InfoColor")]
-        public int InfoFontColor { get; set; }
+        public string InfoFontColor { get; set; } = string.Empty;
 
-        [XmlElement(ElementName = "TimeColor")]
-        public int TimeFontColor { get; set; }
+        public string TimeFontColor { get; set; } = string.Empty;
 
-        [XmlElement(ElementName = "ShadowColor")]
-        public int ShadowColor { get; set; }
+        public string ShadowColor { get; set; } = string.Empty;
 
-        [XmlElement(ElementName = "InfoFont")]
-        public string InfoFont { get; set; }
+        public string InfoFont { get; set; } = string.Empty;
 
-        [XmlElement(ElementName = "TimeFont")]
-        public string TimeFont { get; set; }
+        public string TimeFont { get; set; } = string.Empty;
 
-        [XmlElement(ElementName = "InfoFontSize")]
         public int InfoFontSize { get; set; }
 
-        [XmlElement(ElementName = "TimeFontSize")]
         public int TimeFontSize { get; set; }
 
-        [XmlElement(ElementName = "InfoChecked")]
         public bool PrintInfo { get; set; }
 
-        [XmlElement(ElementName = "TimeChecked")]
         public bool PrintTime { get; set; }
 
-        public string ConfigPath { get; set; }
+        public string ConfigPath { get; set; } = "default.json";
 
-        public static Config CurrentConfig { get; private set; }
+        [JsonIgnore]
+        public static Config? CurrentConfig { get; private set; }
 
-        private readonly string _defaultPath = "config.xml";
+        [JsonIgnore]
+        private readonly string _defaultPath = "default.json";
 
-        private Config()
+        [JsonConstructor]
+        public Config()
         {
-            // Parameterless constructor for XML serialization
+            
         }
-
         public Config(bool loadDefault = false)
         {
             if (loadDefault)
@@ -75,18 +66,20 @@ namespace libthumbnailer
         public void SaveAs(string path)
         {
             ConfigPath = path;
-            var xmls = new XmlSerializer(this.GetType());
-            var writer = new StreamWriter(path);
-            xmls.Serialize(writer, this);
+            var writer = File.OpenWrite(path);
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            JsonSerializer.Serialize(writer, this, options);
             writer.Close();
         }
 
-        public static Config Load(string path)
+        public static Config Load(string path = "")
         {
-            var fs = new FileStream(path, FileMode.Open);
-            var xmls = new XmlSerializer(typeof(Config));
-            var retval = (Config)xmls.Deserialize(fs);
-            fs.Close();
+            if(string.IsNullOrEmpty(path))
+            {
+                path = "default.json";
+            }
+            var json = File.ReadAllText(path);
+            var retval = JsonSerializer.Deserialize<Config>(json) ?? new Config();
             retval.ConfigPath = path;
             CurrentConfig = retval;
             return retval;
