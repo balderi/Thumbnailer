@@ -54,7 +54,7 @@ namespace libthumbnailer
             Columns = _config.Columns;
             Width = _config.Width;
             Gap = _config.Gap;
-            _aspectRatio = GetAspectRatio(info.GetProperty("streams")[0]);
+            _aspectRatio = GetAspectRatio(info);
             _logger.WithClassAndMethodNames<ContactSheet>().Information("Got aspect ratio of {ratio}", _aspectRatio);
 
             Thumbnails = [];
@@ -130,11 +130,13 @@ namespace libthumbnailer
             }
         }
 
-        private static int GetAspectRatio(JsonElement root)
+        private int GetAspectRatio(JsonElement root)
         {
             try
             {
-                var aspect = root.TryGetProperty("sample_aspect_ratio", out var ratio);
+                TryGetIndex(root.GetProperty("streams"), "video", out int vindex);
+                var video = root.GetProperty("streams")[vindex];
+                var aspect = video.TryGetProperty("sample_aspect_ratio", out var ratio);
                 if (aspect)
                 {
                     var parts = ratio.GetString()!.Split(':');
@@ -142,11 +144,13 @@ namespace libthumbnailer
                 }
                 else
                 {
+                    _logger.WithClassAndMethodNames<ContactSheet>().Warning("Unable to get sample_aspect_ratio property. Setting aspect ratio to 1");
                     return 1;
                 }
             }
-            catch
+            catch (Exception e)
             {
+                _logger.WithClassAndMethodNames<ContactSheet>().Error("Unable to get sample_aspect_ratio property. Setting aspect ratio to 1. Exception caught: {ex}", e);
                 return 1;
             }
         }
