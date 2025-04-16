@@ -55,6 +55,7 @@ namespace libthumbnailer
             Width = _config.Width;
             Gap = _config.Gap;
             _aspectRatio = GetAspectRatio(info.GetProperty("streams")[0]);
+            _logger.WithClassAndMethodNames<ContactSheet>().Information("Got aspect ratio of {ratio}", _aspectRatio);
 
             Thumbnails = [];
             Height = 0;
@@ -271,10 +272,10 @@ namespace libthumbnailer
             GenerateThumbnails();
 
             int thumbWidth = (Width - ((Columns - 1) * Gap) - 4) / Columns;
-            double tw = Thumbnails[0].Image.Width;
+            double tw = Thumbnails[0].Image.Width * _aspectRatio;
             double th = Thumbnails[0].Image.Height;
             double ratio = th / tw;
-            int thumbHeight = (int)Math.Round(ratio * thumbWidth / _aspectRatio);
+            int thumbHeight = (int)Math.Round(ratio * thumbWidth);
             Height = (thumbHeight * Rows) + 2 + (Rows * Gap);
             int infoHeight = 0;
 
