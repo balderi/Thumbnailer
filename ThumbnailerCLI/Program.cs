@@ -11,7 +11,6 @@ namespace ThumbnailerCLI
         static bool overwrite, recurse, verbose;
         static string sourcePath, configPath;
         static List<ContactSheet> sheets;
-        static Logger logger;
         static int curFile, totalFiles;
         static Config config;
 
@@ -23,7 +22,6 @@ namespace ThumbnailerCLI
                 return;
             }
 
-            logger = new Logger();
             sheets = new List<ContactSheet>();
 
             foreach(string arg in args)
@@ -57,7 +55,7 @@ namespace ThumbnailerCLI
 
             List<string> files = (List<string>)Loader.LoadFiles(sourcePath, recurse);
             totalFiles = files.Count;
-            logger.LogInfo($"Building {totalFiles} sheets...");
+            //logger.LogInfo($"Building {totalFiles} sheets...");
             PrintMsg($"Building {totalFiles} sheets...\n");
             int count = 0;
             foreach (var f in files)
@@ -71,10 +69,10 @@ namespace ThumbnailerCLI
 
             curFile = 0;
 
-            ContactSheet.AllSheetsPrinted += AllSheetsPrinted;
-            logger.LogInfo($"Printing {count} sheets...");
+            //ContactSheet.AllSheetsPrinted += AllSheetsPrinted;
+            //logger.LogInfo($"Printing {count} sheets...");
             PrintMsg($"Printing {count} sheets...\n");
-            ContactSheet.PrintSheetsParallel(sheets, config, logger, overwrite: overwrite);
+            //ContactSheet.PrintSheetsParallel(sheets, config, logger, overwrite: overwrite);
 
             //Wait forever until the AllSheetsPrinted event is fired
             await Task.Delay(-1);
@@ -90,13 +88,13 @@ namespace ThumbnailerCLI
 
         static void AllSheetsPrinted(object sender, string e)
         {
-            ContactSheet.AllSheetsPrinted -= AllSheetsPrinted;
+            //ContactSheet.AllSheetsPrinted -= AllSheetsPrinted;
             CleanUp();
         }
 
         static void CleanUp()
         {
-            logger.LogInfo($"Beginning clean-up...");
+            //logger.LogInfo($"Beginning clean-up...");
             PrintMsg($"Beginning clean-up...");
             foreach (string d in Directory.GetDirectories("temp"))
             {
@@ -108,7 +106,7 @@ namespace ThumbnailerCLI
                     }
                     catch (Exception ex)
                     {
-                        logger.LogWarning($"Failed to delete file {f}: {ex.Message}");
+                        //logger.LogWarning($"Failed to delete file {f}: {ex.Message}");
                     }
                 }
                 try
@@ -117,12 +115,12 @@ namespace ThumbnailerCLI
                 }
                 catch (Exception ex)
                 {
-                    logger.LogWarning($"Failed to delete directory {d}: {ex.Message}");
+                    //logger.LogWarning($"Failed to delete directory {d}: {ex.Message}");
                 }
             }
-            logger.LogInfo($"Clean-up done!");
+            //logger.LogInfo($"Clean-up done!");
             PrintMsg($"Clean-up done!");
-            logger.Close();
+            //logger.Close();
             Environment.Exit(0);
         }
 

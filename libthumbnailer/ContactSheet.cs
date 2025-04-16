@@ -54,6 +54,7 @@ namespace libthumbnailer
             Columns = _config.Columns;
             Width = _config.Width;
             Gap = _config.Gap;
+            _aspectRatio = GetAspectRatio(info.GetProperty("streams")[0]);
 
             Thumbnails = [];
             Height = 0;
@@ -125,6 +126,27 @@ namespace libthumbnailer
             catch
             {
                 return "Unknown video";
+            }
+        }
+
+        private static int GetAspectRatio(JsonElement root)
+        {
+            try
+            {
+                var aspect = root.TryGetProperty("sample_aspect_ratio", out var ratio);
+                if (aspect)
+                {
+                    var parts = ratio.GetString()!.Split(':');
+                    return int.Parse(parts[0]) / int.Parse(parts[1]);
+                }
+                else
+                {
+                    return 1;
+                }
+            }
+            catch
+            {
+                return 1;
             }
         }
 
