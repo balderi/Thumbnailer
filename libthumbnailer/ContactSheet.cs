@@ -310,6 +310,8 @@ namespace libthumbnailer
                     int x = 2 + (j * (thumbWidth + Gap));
                     int y = infoHeight + (i * (thumbHeight + Gap));
 
+                    _logger.WithClassAndMethodNames<ContactSheet>().Information("Drawing image {idx} at ({x},{y})", idx, x, y);
+
                     var tn = Thumbnails[idx].Image;
                     tn.Mutate(t => t.Resize(thumbWidth, thumbHeight));
 
@@ -331,7 +333,14 @@ namespace libthumbnailer
             if (_config.PrintInfo)
                 image.Mutate(i => i.DrawText(PrintInfo(), infoF, infoB, new PointF(2, 2)));
 
-            image.SaveAsPng(FilePath + ".png");
+            try
+            {
+                image.SaveAsPng(FilePath + ".png");
+            }
+            catch (Exception e)
+            {
+                _logger.WithClassAndMethodNames<ContactSheet>().Fatal(e.Message);
+            }
 
             _logger.WithClassAndMethodNames<ContactSheet>().Information("Cleaning up");
 
@@ -345,6 +354,7 @@ namespace libthumbnailer
                 catch (Exception ex)
                 {
                     Console.WriteLine($"ERROR: {ex.Message}");
+                    _logger.WithClassAndMethodNames<ContactSheet>().Error(ex.Message);
                 }
             }
             try
@@ -354,6 +364,7 @@ namespace libthumbnailer
             catch (Exception ex)
             {
                 Console.WriteLine($"ERROR: {ex.Message}");
+                _logger.WithClassAndMethodNames<ContactSheet>().Error(ex.Message);
             }
 
             _logger.WithClassAndMethodNames<ContactSheet>().Information("Contact sheet printed successfully to {path}", FilePath + ".png");
