@@ -13,16 +13,26 @@ namespace ThumbnailerCLI
         static List<ContactSheet> sheets;
         static int curFile, totalFiles;
         static Config config;
+        static Serilog.ILogger logger;
 
         static async Task Main(string[] args)
         {
             if(args.Length < 1)
             {
-                Console.WriteLine("Too few arguments. Use -h or --help for help.");
-                return;
+                //Console.WriteLine("Too few arguments. Use -h or --help for help.");
+                //return;
+                Console.Write("Enter video path: ");
+                sourcePath = Console.ReadLine();
+                verbose = true;
             }
 
-            sheets = new List<ContactSheet>();
+            logger = new Serilog.LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .CreateLogger();
+
+            Console.WriteLine("Started logger");
+
+            sheets = [];
 
             foreach(string arg in args)
             {
@@ -42,16 +52,14 @@ namespace ThumbnailerCLI
                 {
                     sourcePath = arg;
                 }
-                else if(configPath is null)
-                {
-                    configPath = arg;
-                }
+                else configPath ??= arg;
             }
 
-            if (configPath is null)
-                configPath = "default.xml";
+            configPath ??= "default.json";
 
             config = Config.Load(configPath);
+
+            Console.WriteLine("Loaded config");
 
             List<string> files = (List<string>)Loader.LoadFiles(sourcePath, recurse);
             totalFiles = files.Count;
@@ -60,7 +68,7 @@ namespace ThumbnailerCLI
             int count = 0;
             foreach (var f in files)
             {
-                var sheet = ContactSheetFactory.CreateContactSheet(f, logger);
+                var sheet = ContactSheetFactory.CreateContactSheet(f, config, logger);
                 if (verbose)
                     sheet.SheetPrinted += SheetPrinted;
                 sheets.Add(sheet);
@@ -84,44 +92,6 @@ namespace ThumbnailerCLI
             var s = sender as ContactSheet;
             s.SheetPrinted -= SheetPrinted;
             PrintOverMsg($"Printed {curFile}/{totalFiles} sheets...");
-        }
-
-        static void AllSheetsPrinted(object sender, string e)
-        {
-            //ContactSheet.AllSheetsPrinted -= AllSheetsPrinted;
-            CleanUp();
-        }
-
-        static void CleanUp()
-        {
-            //logger.LogInfo($"Beginning clean-up...");
-            PrintMsg($"Beginning clean-up...");
-            foreach (string d in Directory.GetDirectories("temp"))
-            {
-                foreach (string f in Directory.GetFiles(d))
-                {
-                    try
-                    {
-                        File.Delete(f);
-                    }
-                    catch (Exception ex)
-                    {
-                        //logger.LogWarning($"Failed to delete file {f}: {ex.Message}");
-                    }
-                }
-                try
-                {
-                    Directory.Delete(d);
-                }
-                catch (Exception ex)
-                {
-                    //logger.LogWarning($"Failed to delete directory {d}: {ex.Message}");
-                }
-            }
-            //logger.LogInfo($"Clean-up done!");
-            PrintMsg($"Clean-up done!");
-            //logger.Close();
-            Environment.Exit(0);
         }
 
         static void ParseFlag(string flag)

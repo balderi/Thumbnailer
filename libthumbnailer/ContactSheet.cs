@@ -1,10 +1,12 @@
 ﻿using SixLabors.Fonts;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 using Serilog;
+using SixLabors.ImageSharp.Processing;
 
 namespace libthumbnailer
 {
@@ -285,9 +287,9 @@ namespace libthumbnailer
 
             Font infoF = new(Utils.GetFontFamilyFromName(_config.InfoFont), _config.InfoFontSize);
             Font timeF = new(Utils.GetFontFamilyFromName(_config.TimeFont), _config.TimeFontSize);
-            SolidBrush infoB = BrushFactory.CreateBrush(Color.FromPixel(Rgba32.ParseHex(_config.InfoFontColor)));
-            SolidBrush timeB = BrushFactory.CreateBrush(Color.FromPixel(Rgba32.ParseHex(_config.TimeFontColor)));
-            SolidBrush timeSB = BrushFactory.CreateBrush(Color.FromPixel(Rgba32.ParseHex(_config.ShadowColor)));
+            SolidBrush infoB = BrushFactory.CreateBrush(Color.FromPixel<Rgba32>(Rgba32.ParseHex(_config.InfoFontColor)));
+            SolidBrush timeB = BrushFactory.CreateBrush(Color.FromPixel<Rgba32>(Rgba32.ParseHex(_config.TimeFontColor)));
+            SolidBrush timeSB = BrushFactory.CreateBrush(Color.FromPixel<Rgba32>(Rgba32.ParseHex(_config.ShadowColor)));
 
             if (_config.PrintInfo)
             {

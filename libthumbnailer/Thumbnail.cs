@@ -1,4 +1,6 @@
-﻿namespace libthumbnailer
+﻿using SixLabors.ImageSharp;
+
+namespace libthumbnailer
 {
     public class Thumbnail : IDisposable
     {
