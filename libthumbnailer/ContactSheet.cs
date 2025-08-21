@@ -335,11 +335,13 @@ namespace libthumbnailer
 
             try
             {
+                _logger.WithClassAndMethodNames<ContactSheet>().Information("Saving sheet at {path}.png", FilePath);
                 image.SaveAsPng(FilePath + ".png");
             }
             catch (Exception e)
             {
-                _logger.WithClassAndMethodNames<ContactSheet>().Fatal(e.Message);
+                _logger.WithClassAndMethodNames<ContactSheet>().Fatal("Error saving sheet: {msg}", e.Message);
+                return false;
             }
 
             _logger.WithClassAndMethodNames<ContactSheet>().Information("Cleaning up");
