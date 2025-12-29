@@ -1,7 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Serilog;
-using Serilog.Events;
 
 namespace libthumbnailer
 {

@@ -14,6 +14,13 @@ namespace libthumbnailer
             TimeCode = timeCode;
             Image = Image.Load(path);
         }
+        
+        public Thumbnail(Image image, double timeCode)
+        {
+            Path = string.Empty;
+            TimeCode = timeCode;
+            Image = image;
+        }
 
         public void Dispose()
         {
